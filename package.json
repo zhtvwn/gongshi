@@ -1,0 +1,20 @@
+{
+  "name": "gonshi-formula-app",
+  "version": "1.0.1",
+  "description": "初中数理化公式手册 - 互动记忆 Web 应用",
+  "main": "server.js",
+  "files": [
+    "server.js",
+    "public/",
+    "data/",
+    "Dockerfile",
+    "docker-compose.yml"
+  ],
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

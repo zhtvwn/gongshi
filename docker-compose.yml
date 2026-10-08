@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  gonshi:
+    build: .
+    container_name: gonshi-formula
+    ports:
+      - "3333:3000"
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+    # 如需持久化修改数据，可挂载 data 目录
+    volumes:
+      - ./data:/app/data:ro

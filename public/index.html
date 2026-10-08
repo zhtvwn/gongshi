@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- 最早注入：拦截 WebView 宿主代码层异常，防止污染控制台 -->
+<script>window.onerror=function(){return true;};window.addEventListener('error',function(e){e.stopImmediatePropagation();},true);</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover, user-scalable=yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f5f5f7">
+
+<title>初中数理化公式手册 - 互动记忆</title>
+<style>
+/* ======== 基础变量与重置（移动优先） ======== */
+:root{
+  --bg:#f5f5f7;--card:#ffffff;--text:#1d1d1f;--sub:#6e6e73;
+  --accent-math:#e74c3c;--accent-physics:#2e86c1;--accent-chemistry:#27ae60;
+  --border:#e0e0e5;--shadow:0 2px 12px rgba(0,0,0,.06);--radius:14px;--tag-bg:#f0f0f4;
+  --safe-bottom:env(safe-area-inset-bottom,0px);--safe-top:env(safe-area-inset-top,0px);
+  --safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);
+  --pt-alkali:#ff6b6b;--pt-alkaline:#ffa94d;--pt-transition:#ffd43b;
+  --pt-post:#69db7c;--pt-metalloid:#38d9a9;--pt-nonmetal:#74c0fc;
+  --pt-halogen:#4dabf7;--pt-noble:#b197fc;--pt-lanthanide:#f783ac;--pt-actinide:#f06595;
+  --mode-bg:#fff;--input-bg:#f9f9fb;--formula-bg:#fafafa;--hover-bg:#f0f0f4;
+  --grade-bar-bg:#fafafc;--table-stripe:#f0f0f0;
+  --content-max-width:1400px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;min-height:100dvh;-webkit-tap-highlight-color:transparent;padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);-webkit-text-size-adjust:100%;overflow-x:hidden}
+
+/* ======== 顶部导航区 ======== */
+.sticky-wrap{position:sticky;top:0;z-index:100;background:var(--card);padding-top:var(--safe-top)}
+header{background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+
+header .inner,.grade-bar .inner,.search-row .inner{max-width:var(--content-max-width);margin:0 auto;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.grade-bar{background:#fafafc;border-bottom:1px solid var(--border)}
+.grade-label{font-size:.78rem;color:var(--sub);font-weight:600;white-space:nowrap;display:none}
+.search-row{background:#fff;border-bottom:1px solid var(--border)}
+.search-row .inner{justify-content:stretch}
+.tab-btn{padding:5px 12px;border:1px solid var(--border);border-radius:16px;background:#fff;cursor:pointer;font-size:.78rem;transition:.15s;color:var(--sub);font-weight:500;white-space:nowrap;min-height:34px;-webkit-tap-highlight-color:transparent;outline:none;touch-action:manipulation}
+.tab-btn:active{background:#e8e8ed}
+.tab-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+#search{width:100%;padding:8px 14px;border:1px solid var(--border);border-radius:18px;font-size:.85rem;outline:none;transition:.2s;background:var(--input-bg);color:var(--text);-webkit-appearance:none;min-height:36px}
+#search:focus{border-color:#888;background:var(--card)}
+
+/* ======== 主体 ======== */
+main{max-width:var(--content-max-width);margin:0 auto;padding:10px 8px}
+
+/* ======== 模式切换栏 ======== */
+.interact-bar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 2px 4px}
+.interact-bar::-webkit-scrollbar{display:none}
+.mode-btn{padding:7px 11px;border:1.5px solid var(--border);border-radius:18px;background:var(--mode-bg);cursor:pointer;font-size:.78rem;font-weight:600;transition:.15s;white-space:nowrap;min-height:34px;flex-shrink:0;-webkit-tap-highlight-color:transparent;outline:none;touch-action:manipulation;color:var(--text)}
+.mode-btn:active{border-color:#aaa}
+.mode-btn.active{border-color:var(--text);background:var(--text);color:#fff}
+
+/* ======== 加载动画 ======== */
+.loading{text-align:center;padding:40px 16px;color:var(--sub);font-size:1rem}
+.loading .spinner{display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ======== 浏览模式 - 公式卡片 ======== */
+.formula-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.formula-card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border:1px solid transparent;position:relative;overflow:hidden}
+.formula-card:active{box-shadow:0 3px 16px rgba(0,0,0,.1);transform:translateY(-1px)}
+.formula-card .subject-bar{height:4px;position:absolute;top:0;left:0;right:0;border-radius:4px 4px 0 0}
+.formula-card.math .subject-bar{background:var(--accent-math)}
+.formula-card.physics .subject-bar{background:var(--accent-physics)}
+.formula-card.chemistry .subject-bar{background:var(--accent-chemistry)}
+.formula-card .header{display:flex;justify-content:space-between;align-items:flex-start;margin-top:5px;margin-bottom:7px;gap:6px}
+.formula-card .name{font-size:.98rem;font-weight:700;flex:1;word-break:break-all}
+.formula-card .tags{display:flex;gap:3px;flex-wrap:wrap}
+.formula-card .tag{padding:2px 7px;background:var(--tag-bg);border-radius:8px;font-size:.66rem;color:var(--sub);white-space:nowrap}
+.formula-card .formula{margin:7px 0;padding:10px 12px;background:#fafafa;border-radius:10px;font-size:.95rem;font-family:"Times New Roman","Latin Modern Math",serif;text-align:center;letter-spacing:.02em;word-break:break-all;overflow-wrap:break-word}
+.formula-card .formula .hl{color:#e74c3c;font-weight:600}
+.formula-card .variants{margin-top:4px;font-size:.78rem;color:var(--sub)}
+.formula-card .variants span{display:inline-block;background:#fff3cd;padding:2px 7px;border-radius:6px;margin:2px 3px 2px 0;font-size:.73rem}
+.formula-card .desc{font-size:.78rem;color:var(--sub);margin-top:6px;line-height:1.5;border-top:1px solid #f0f0f0;padding-top:6px}
+
+/* ======== 闪卡模式 ======== */
+.flashcard-container{text-align:center;max-width:500px;margin:14px auto;width:100%}
+.flashcard{background:var(--card);border-radius:18px;padding:28px 16px;box-shadow:0 4px 24px rgba(0,0,0,.08);min-height:200px;display:flex;flex-direction:column;justify-content:center;align-items:center;cursor:pointer;transition:transform .3s,box-shadow .3s;user-select:none;position:relative;-webkit-tap-highlight-color:transparent;touch-action:manipulation;color:var(--text)}
+.flashcard.show-back{transform:rotateY(2deg)}
+.flashcard .flash-front{font-size:1.05rem;font-weight:700;line-height:1.5}
+.flashcard .flash-back{font-size:1.1rem;font-weight:700;color:var(--accent-math);display:none}
+.flashcard .flash-variants{margin-top:8px;font-size:.78rem;color:var(--sub);display:none}
+.flashcard .flash-desc{margin-top:6px;font-size:.76rem;color:var(--sub);display:none;line-height:1.5}
+.flashcard.show-back .flash-back{display:block}
+.flashcard.show-back .flash-variants{display:block}
+.flashcard.show-back .flash-desc{display:block}
+.flashcard.show-back .flash-hint{display:none}
+.flashcard .flash-hint{color:var(--sub);font-size:.76rem;margin-top:12px;opacity:.6}
+.flash-nav{display:flex;justify-content:center;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap}
+.flash-nav button{padding:9px 16px;border-radius:18px;border:none;cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s;min-height:38px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.flash-nav .btn-prev{background:var(--hover-bg);color:var(--text)}
+.flash-nav .btn-next{background:var(--text);color:var(--bg)}
+.flash-nav .btn-flip{background:#ff9500;color:#fff}
+.flash-nav .counter{font-size:.78rem;color:var(--sub);order:-1;width:100%;text-align:center}
+.flash-subject-select{display:flex;justify-content:center;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+
+/* ======== 填空练习 ======== */
+.gapfill-container{max-width:600px;margin:0 auto;width:100%}
+.gapfill-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:10px;text-align:center}
+.gapfill-card .gf-formula{font-size:1.15rem;padding:10px 8px;background:var(--formula-bg);border-radius:10px;margin-bottom:10px;font-family:"Times New Roman",serif;line-height:2;word-break:break-all}
+.gapfill-card .gf-blank{display:inline-block;width:70px;border-bottom:3px dashed #e74c3c;margin:0 4px;text-align:center;font-weight:700;color:var(--accent-math)}
+.gapfill-input{padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-size:.92rem;text-align:center;outline:none;width:140px;transition:.15s;-webkit-appearance:none;background:var(--input-bg);color:var(--text)}
+.gapfill-input:focus{border-color:var(--accent-math)}
+.gapfill-result{font-size:.88rem;font-weight:600;margin-top:6px;min-height:22px}
+.gapfill-nav{display:flex;justify-content:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+
+/* ======== 随机测验 ======== */
+.quiz-container{max-width:600px;margin:0 auto;width:100%}
+.quiz-question{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:10px}
+.quiz-question .q-title{font-size:.9rem;font-weight:700;margin-bottom:8px;line-height:1.5}
+.quiz-question .q-formula{font-size:1.05rem;padding:10px;background:var(--formula-bg);border-radius:10px;text-align:center;font-family:"Times New Roman",serif;margin-bottom:10px}
+.quiz-options{display:grid;grid-template-columns:1fr;gap:6px}
+.quiz-option{padding:11px 10px;border:2px solid var(--border);border-radius:12px;cursor:pointer;text-align:center;font-size:.84rem;background:var(--card);color:var(--text);word-break:break-word;min-height:40px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.quiz-option:active{border-color:#888}
+.quiz-option.correct{border-color:var(--accent-chemistry);background:#e8f8f0}
+.quiz-option.wrong{border-color:var(--accent-math);background:#fde8e8}
+.quiz-result{text-align:center;font-size:.95rem;font-weight:700;margin-top:8px}
+.quiz-score{text-align:center;margin:10px 0;font-size:.95rem;font-weight:600}
+.quiz-nav{display:flex;justify-content:center;gap:8px;margin-top:6px}
+
+/* ======== 单位换算 ======== */
+.convert-grid{display:grid;grid-template-columns:1fr;gap:14px;max-width:900px;margin:0 auto;width:100%}
+.convert-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.convert-card .card-head{padding:12px 14px 8px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.convert-card .card-head .icon{font-size:1.2rem}
+.convert-card .card-head .title{font-size:.95rem;font-weight:700}
+.convert-card .card-desc{padding:2px 14px 8px;font-size:.74rem;color:var(--sub)}
+.convert-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0;position:relative}
+.convert-table-wrap::-webkit-scrollbar{height:3px}
+.convert-table-wrap::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+.convert-card table{width:100%;border-collapse:collapse;font-size:.74rem;min-width:480px}
+.convert-card table th{background:var(--formula-bg);padding:7px 8px;text-align:center;font-weight:600;font-size:.72rem;color:var(--sub);border-bottom:2px solid var(--border);white-space:nowrap}
+.convert-card table td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--border)}
+.convert-card table .asc{color:#27ae60;font-weight:600;font-family:"Times New Roman","Latin Modern Math",serif;font-size:.82rem}
+.convert-card table .desc{color:#e74c3c;font-weight:600;font-family:"Times New Roman","Latin Modern Math",serif;font-size:.82rem}
+.convert-card table tr:active{background:var(--hover-bg)}
+
+.hidden{display:none!important}
+
+/* ======== 平板适配 (≥ 600px / iPad竖屏) ======== */
+@media(min-width:600px){
+  header .inner,.grade-bar .inner,.search-row .inner{padding:10px 16px;gap:10px}
+  header h1{font-size:1.3rem}
+  .grade-label{display:inline}
+  .tab-btn{padding:6px 15px;font-size:.84rem;border-radius:18px}
+  #search{max-width:260px}
+  main{padding:16px}
+  .interact-bar{gap:8px;margin-bottom:16px;flex-wrap:wrap;overflow-x:visible}
+  .mode-btn{padding:8px 15px;font-size:.82rem;flex-shrink:1}
+  .formula-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .formula-card{padding:17px}
+  .formula-card .name{font-size:1rem}
+  .formula-card .desc{font-size:.81rem}
+  .flashcard{padding:34px 24px;min-height:240px}
+  .flashcard .flash-front{font-size:1.12rem}
+  .flash-nav{gap:12px}
+  .flash-nav .counter{order:0;width:auto}
+  .gapfill-card{padding:20px}
+  .gapfill-card .gf-formula{font-size:1.25rem}
+  .gapfill-input{width:160px}
+  .quiz-options{grid-template-columns:1fr 1fr}
+  .quiz-option{font-size:.9rem;padding:13px;min-height:44px}
+  .convert-card .card-head{padding:15px 18px 9px}
+  .convert-card .card-desc{padding:4px 18px 10px}
+  .convert-card table{font-size:.8rem}
+  .convert-card table th{padding:8px 11px;font-size:.78rem}
+  .convert-card table td{padding:8px 11px}
+}
+
+/* ======== 桌面适配 (≥ 960px) ======== */
+@media(min-width:960px){
+  header .inner,.grade-bar .inner,.search-row .inner{padding:10px 20px}
+  header h1{font-size:1.45rem}
+  .tab-btn{padding:7px 18px;font-size:.88rem}
+  .tab-btn:hover{background:#f0f0f4}
+  .tab-btn.active:hover{background:var(--text)}
+  main{padding:20px}
+  .interact-bar{gap:10px;margin-bottom:20px;flex-wrap:wrap;overflow-x:visible}
+  .mode-btn{padding:9px 20px;font-size:.87rem;flex-shrink:1}
+  .mode-btn:hover{border-color:#aaa}
+  .mode-btn.active:hover{border-color:var(--text)}
+  .formula-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .formula-card{padding:20px 22px}
+  .formula-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.1);transform:translateY(-2px)}
+  .formula-card .formula{font-size:1.1rem;padding:12px 18px}
+  .formula-card .desc{font-size:.84rem}
+  .flashcard{padding:40px 30px;min-height:260px;box-shadow:0 8px 40px rgba(0,0,0,.06)}
+  .flashcard .flash-front{font-size:1.22rem}
+  .flash-nav button{padding:10px 22px;font-size:.9rem}
+  .flash-nav button:hover{opacity:.85}
+  .flash-nav button:active{transform:scale(.97)}
+  .gapfill-card .gf-formula{font-size:1.35rem}
+  .quiz-option:hover{border-color:#aaa}
+  .quiz-option:active{transform:scale(.98)}
+  .convert-card table{font-size:.88rem}
+  .convert-card table th{font-size:.82rem}
+  .convert-card table tr:hover{background:#fafafc}
+  .convert-card table .asc,.convert-card table .desc{font-size:.92rem}
+}
+
+/* ======== 超大屏适配 (≥ 1400px) ======== */
+@media(min-width:1400px){
+  main{padding:24px 20px}
+  .formula-grid{grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+  .formula-card{padding:24px 28px}
+  .formula-card .name{font-size:1.1rem}
+  .formula-card .formula{font-size:1.2rem;padding:14px 22px}
+  .formula-card .desc{font-size:.9rem}
+  .flashcard{max-width:700px;padding:50px 40px;min-height:300px}
+  .flashcard .flash-front{font-size:1.35rem}
+  .flashcard .flash-back{font-size:1.4rem}
+  .flash-nav button{padding:12px 28px;font-size:.95rem}
+  .gapfill-card{max-width:800px;padding:28px}
+  .gapfill-card .gf-formula{font-size:1.45rem}
+  .quiz-container{max-width:800px}
+  .quiz-option{font-size:.95rem;padding:15px;min-height:50px}
+  .convert-grid{grid-template-columns:repeat(2,1fr);max-width:1200px}
+  .periodic-grid{min-width:1200px;gap:5px}
+  .pt-cell .pt-z{font-size:.72rem}
+  .pt-cell .pt-symbol{font-size:1.25rem}
+  .pt-cell .pt-name{font-size:.68rem}
+  .pt-detail-panel{max-width:600px;padding:28px}
+}
+
+/* ======== 横屏手机优化 ======== */
+@media(max-width:960px) and (orientation:landscape){
+  .formula-grid{grid-template-columns:repeat(2,1fr)}
+  .quiz-options{grid-template-columns:1fr 1fr}
+  .flashcard{min-height:180px;padding:18px 16px}
+  main{padding:6px 8px}
+}
+
+/* ======== 元素周期表 ======== */
+.periodic-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -8px;padding:0 8px;max-width:100%}
+.periodic-wrapper::-webkit-scrollbar{height:4px}
+.periodic-wrapper::-webkit-scrollbar-thumb{background:#ccc;border-radius:4px}
+.periodic-grid{display:grid;grid-template-columns:repeat(18,1fr);gap:2px;min-width:740px;padding:4px 0}
+.pt-cell{aspect-ratio:1;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.55rem;transition:transform .12s,box-shadow .12s;position:relative;user-select:none;min-width:0;overflow:hidden;text-align:center;padding:1px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.pt-cell:active{transform:scale(1.08);z-index:2;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+.pt-cell .pt-z{font-size:.5rem;line-height:1;opacity:.7}
+.pt-cell .pt-symbol{font-size:.82rem;font-weight:800;line-height:1.15}
+.pt-cell .pt-name{font-size:.48rem;line-height:1;opacity:.85;white-space:nowrap}
+.pt-cell.pt-alkali{background:var(--pt-alkali);color:#fff}
+.pt-cell.pt-alkaline{background:var(--pt-alkaline);color:#fff}
+.pt-cell.pt-transition{background:var(--pt-transition);color:#333}
+.pt-cell.pt-post{background:var(--pt-post);color:#fff}
+.pt-cell.pt-metalloid{background:var(--pt-metalloid);color:#fff}
+.pt-cell.pt-nonmetal{background:var(--pt-nonmetal);color:#333}
+.pt-cell.pt-halogen{background:var(--pt-halogen);color:#fff}
+.pt-cell.pt-noble{background:var(--pt-noble);color:#fff}
+.pt-cell.pt-lanthanide{background:var(--pt-lanthanide);color:#fff}
+.pt-cell.pt-actinide{background:var(--pt-actinide);color:#fff}
+.pt-cell.pt-empty{background:transparent;cursor:default;pointer-events:none}
+.pt-series-label{display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:.62rem;font-weight:700;color:var(--pt-lanthanide);white-space:nowrap;grid-column:1/3}
+.pt-series-label.actinide-label{color:var(--pt-actinide)}
+.pt-detail-panel{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:14px;display:none;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:500px;margin-left:auto;margin-right:auto}
+.pt-detail-panel.show{display:block}
+.pt-detail-panel .pt-d-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pt-detail-panel .pt-d-symbol{font-size:2.5rem;font-weight:800;line-height:1;min-width:60px;text-align:center}
+.pt-detail-panel .pt-d-name{font-size:1.3rem;font-weight:700}
+.pt-detail-panel .pt-d-en{font-size:.8rem;color:var(--sub)}
+.pt-detail-panel .pt-d-info{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.8rem;margin-top:8px}
+.pt-detail-panel .pt-d-info .pt-d-row{display:flex;gap:6px;align-items:baseline}
+.pt-detail-panel .pt-d-info .pt-d-label{color:var(--sub);font-weight:500;white-space:nowrap}
+.pt-detail-panel .pt-d-info .pt-d-val{font-weight:600}
+.pt-detail-close{position:absolute;top:8px;right:12px;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--sub);padding:4px 8px;border-radius:50%}
+.pt-detail-close:hover{background:var(--hover-bg)}
+
+/* 移动端元素列表模式切换 */
+.pt-view-toggle{display:flex;justify-content:flex-end;gap:4px;margin-bottom:8px}
+.pt-view-toggle button{padding:4px 10px;border:1px solid var(--border);border-radius:12px;background:var(--mode-bg);color:var(--sub);font-size:.7rem;cursor:pointer;transition:.15s}
+.pt-view-toggle button.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+@media(min-width:960px){.pt-view-toggle{display:none}}
+
+/* 元素列表模式 */
+.pt-list-mode{display:none}
+.pt-list-mode.active{display:block}
+.pt-list-grid{display:grid;grid-template-columns:1fr;gap:6px}
+.pt-list-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-radius:10px;box-shadow:var(--shadow);cursor:pointer;transition:.12s}
+.pt-list-item:active{transform:scale(.98)}
+.pt-list-item .pt-li-symbol{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;color:#fff;flex-shrink:0}
+.pt-list-item .pt-li-info{flex:1;min-width:0}
+.pt-list-item .pt-li-name{font-weight:700;font-size:.85rem}
+.pt-list-item .pt-li-sub{font-size:.7rem;color:var(--sub)}
+.pt-list-item .pt-li-z{font-size:.75rem;font-weight:600;color:var(--sub);flex-shrink:0}
+@media(min-width:600px){.pt-list-grid{grid-template-columns:repeat(2,1fr)}}
+.pt-legend{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 6px;justify-content:center}
+.pt-legend-item{display:flex;align-items:center;gap:3px;font-size:.65rem;color:var(--sub);cursor:pointer;padding:2px 6px;border-radius:10px;transition:.15s}
+.pt-legend-item:hover{background:var(--hover-bg)}
+.pt-legend-dot{width:10px;height:10px;border-radius:3px}
+.pt-legend-item.active{background:var(--hover-bg);font-weight:600;color:var(--text)}
+
+@media(min-width:600px){
+  .periodic-grid{min-width:880px;gap:3px}
+  .pt-cell{border-radius:5px;padding:2px}
+  .pt-cell .pt-z{font-size:.58rem}
+  .pt-cell .pt-symbol{font-size:1rem}
+  .pt-cell .pt-name{font-size:.56rem}
+  .pt-series-label{font-size:.72rem}
+  .pt-detail-panel{padding:20px}
+  .pt-legend-item{font-size:.72rem}
+  .pt-group-header{font-size:.65rem;min-width:0}
+}
+@media(min-width:960px){
+  .periodic-grid{min-width:1100px;gap:4px}
+  .pt-cell{border-radius:6px;padding:3px}
+  .pt-cell:hover{transform:scale(1.1);z-index:2;box-shadow:0 3px 16px rgba(0,0,0,.18)}
+  .pt-cell:active{transform:scale(1.1)}
+  .pt-cell .pt-z{font-size:.66rem}
+  .pt-cell .pt-symbol{font-size:1.15rem}
+  .pt-cell .pt-name{font-size:.62rem}
+  .pt-series-label{font-size:.78rem}
+  .pt-detail-panel{padding:24px}
+  .pt-legend-item{font-size:.78rem}
+  .pt-group-header{font-size:.7rem}}
+/* ======== 元素周期表-工具栏 ======== */
+.pt-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 4px;flex-wrap:wrap}
+.pt-toolbar .pt-color-toggle{display:flex;gap:3px}
+.pt-toolbar .pt-color-toggle button{padding:3px 9px;border:1px solid var(--border);border-radius:10px;background:var(--mode-bg);color:var(--sub);font-size:.65rem;cursor:pointer;transition:.15s;min-height:28px}
+.pt-toolbar .pt-color-toggle button.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.pt-toolbar .pt-actions{display:flex;gap:3px}
+.pt-toolbar .pt-actions button{padding:3px 9px;border:1px solid var(--border);border-radius:10px;background:var(--mode-bg);color:var(--sub);font-size:.65rem;cursor:pointer;transition:.15s;min-height:28px}
+.pt-toolbar .pt-actions button.active{background:#ff9500;color:#fff;border-color:#ff9500}
+/* ======== 族号/周期号高亮 ======== */
+.pt-axis-row{display:flex;align-items:stretch;gap:4px;margin-bottom:2px}
+.pt-period-col{display:flex;flex-direction:column;gap:2px;width:20px;flex-shrink:0;padding-top:22px}
+.pt-period-label{flex:1;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:600;color:var(--sub);cursor:pointer;border-radius:4px;transition:.15s;min-height:0;user-select:none;-webkit-tap-highlight-color:transparent}
+.pt-period-label:hover{background:var(--hover-bg)}
+.pt-period-label.active{background:var(--accent-math);color:#fff}
+.pt-period-placeholder{flex:1;pointer-events:none}
+.pt-group-header-row{display:grid;grid-template-columns:repeat(18,1fr);gap:2px;margin-bottom:1px;min-width:740px}
+.pt-group-header{font-size:.52rem;font-weight:600;color:var(--sub);cursor:pointer;border-radius:4px;text-align:center;padding:2px 0;transition:.15s;user-select:none;-webkit-tap-highlight-color:transparent}
+.pt-group-header:hover{background:var(--hover-bg)}
+.pt-group-header.active{background:var(--accent-math);color:#fff}
+/* 高亮元素 */
+.pt-cell.pt-group-hl{box-shadow:inset 0 0 0 2px var(--accent-math)!important}
+.pt-cell.pt-period-hl{box-shadow:inset 0 0 0 2px var(--accent-physics)!important}
+.pt-cell.pt-group-hl.pt-period-hl{box-shadow:inset 0 0 0 2px var(--accent-math),inset 0 0 0 4px var(--accent-physics)!important}
+/* ======== 状态着色 ======== */
+.pt-cell.pt-state-solid{background:#b0b0b8;color:#fff}
+.pt-cell.pt-state-liquid{background:#4dabf7;color:#fff}
+.pt-cell.pt-state-gas{background:#ff6b6b;color:#fff}
+.pt-cell.pt-state-unknown{background:#d0d0d6;color:#fff}
+/* ======== 元素闪卡面板 ======== */
+.pt-flashcard-panel,.pt-quiz-panel{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:14px;display:none;max-width:600px;margin-left:auto;margin-right:auto}
+.pt-flashcard-panel.show,.pt-quiz-panel.show{display:block}
+.pt-flashcard-panel .ptf-card{text-align:center;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;padding:18px 10px;user-select:none;-webkit-tap-highlight-color:transparent}
+.pt-flashcard-panel .ptf-front .ptf-symbol{font-size:2.8rem;font-weight:800;line-height:1.1}
+.pt-flashcard-panel .ptf-front .ptf-z{font-size:.8rem;color:var(--sub);margin-top:4px}
+.pt-flashcard-panel .ptf-front .ptf-hint{font-size:.72rem;color:var(--sub);opacity:.5;margin-top:10px}
+.pt-flashcard-panel .ptf-back{display:none}
+.pt-flashcard-panel .ptf-card.flipped .ptf-front{display:none}
+.pt-flashcard-panel .ptf-card.flipped .ptf-back{display:block}
+.pt-flashcard-panel .ptf-back .ptf-name{font-size:1.6rem;font-weight:700;margin-bottom:4px}
+.pt-flashcard-panel .ptf-back .ptf-en{font-size:.82rem;color:var(--sub);margin-bottom:8px}
+.pt-flashcard-panel .ptf-back .ptf-info{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.72rem;text-align:left}
+.pt-flashcard-panel .ptf-back .ptf-info span{color:var(--sub)}
+.pt-flashcard-panel .ptf-back .ptf-info strong{display:block}
+.pt-flashcard-nav{display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.pt-flashcard-nav button{padding:7px 14px;border-radius:14px;border:none;cursor:pointer;font-size:.78rem;font-weight:600;min-height:34px}
+.pt-flashcard-nav .ptf-prev{background:var(--hover-bg);color:var(--text)}
+.pt-flashcard-nav .ptf-next{background:var(--text);color:var(--bg)}
+.pt-flashcard-nav .ptf-flip{background:#ff9500;color:#fff}
+.pt-flashcard-nav .ptf-counter{font-size:.75rem;color:var(--sub)}
+/* ======== 配对测验面板 ======== */
+.pt-quiz-panel .ptq-question{text-align:center;margin-bottom:12px}
+.pt-quiz-panel .ptq-symbol{font-size:2.5rem;font-weight:800;color:var(--accent-math);line-height:1.2}
+.pt-quiz-panel .ptq-hint{font-size:.75rem;color:var(--sub);margin-bottom:12px}
+.pt-quiz-panel .ptq-options{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pt-quiz-panel .ptq-option{padding:10px;border:2px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;font-size:.84rem;font-weight:600;background:var(--card);transition:.15s;-webkit-tap-highlight-color:transparent}
+.pt-quiz-panel .ptq-option:active{border-color:#888}
+.pt-quiz-panel .ptq-option.correct{border-color:var(--accent-chemistry);background:#e8f8f0}
+.pt-quiz-panel .ptq-option.wrong{border-color:var(--accent-math);background:#fde8e8}
+.pt-quiz-panel .ptq-result{text-align:center;font-size:.88rem;font-weight:600;margin-top:8px;min-height:22px}
+.pt-quiz-panel .ptq-score{text-align:center;font-size:.85rem;font-weight:600;color:var(--sub);margin-bottom:8px}
+.pt-quiz-nav{display:flex;justify-content:center;gap:8px;margin-top:8px}
+.pt-quiz-nav button{padding:7px 14px;border-radius:14px;border:none;cursor:pointer;font-size:.78rem;font-weight:600;background:var(--text);color:var(--bg);min-height:34px}
+@media(min-width:600px){
+  .pt-toolbar .pt-color-toggle button,.pt-toolbar .pt-actions button{padding:4px 12px;font-size:.72rem}
+  .pt-period-col{width:26px;padding-top:24px}
+  .pt-group-header-row{grid-template-columns:repeat(18,1fr);min-width:880px;gap:3px}
+  .pt-period-label{font-size:.6rem}
+  .pt-group-header{font-size:.6rem}
+  .pt-flashcard-panel .ptf-front .ptf-symbol{font-size:3.2rem}
+  .pt-quiz-panel .ptq-symbol{font-size:2.8rem}
+}
+@media(min-width:960px){
+  .pt-period-col{width:30px;padding-top:26px}
+  .pt-group-header-row{grid-template-columns:repeat(18,1fr);min-width:1100px;gap:4px}
+  .pt-period-label{font-size:.68rem}
+  .pt-group-header{font-size:.68rem}
+  .pt-flashcard-panel .ptf-front .ptf-symbol{font-size:3.8rem}
+  .pt-quiz-panel .ptq-symbol{font-size:3.2rem}
+  .pt-quiz-panel .ptq-option:hover{border-color:#aaa}
+}
+</style>
+</head>
+<body>
+<div class="sticky-wrap">
+<header>
+  <div class="inner">
+    <h1>初中数理化公式手册</h1>
+    <div class="tabs" id="subject-tabs">
+      <button class="tab-btn active" data-tab="all">全部</button>
+      <button class="tab-btn" data-tab="math">数学</button>
+      <button class="tab-btn" data-tab="physics">物理</button>
+      <button class="tab-btn" data-tab="chemistry">化学</button>
+      <button class="tab-btn" data-tab="convert">单位换算</button>
+      <button class="tab-btn" data-tab="periodic">元素周期表</button>
+    </div>
+  </div>
+</header>
+<div class="grade-bar" id="grade-bar">
+  <div class="inner">
+    <span class="grade-label">年级：</span>
+    <div class="tabs" id="grade-tabs">
+      <button class="tab-btn active" data-grade="all">全部年级</button>
+      <button class="tab-btn" data-grade="7">初一</button>
+      <button class="tab-btn" data-grade="8">初二</button>
+      <button class="tab-btn" data-grade="9">初三</button>
+    </div>
+  </div>
+</div>
+<div class="search-row" id="search-row">
+  <div class="inner">
+    <input id="search" type="text" placeholder="搜索公式...">
+  </div>
+</div>
+</div>
+<main>
+  <div class="interact-bar">
+    <button class="mode-btn active" data-mode="browse">浏览模式</button>
+    <button class="mode-btn" data-mode="flashcard">闪卡记忆</button>
+    <button class="mode-btn" data-mode="gapfill">填空练习</button>
+    <button class="mode-btn" data-mode="quiz">随机测验</button>
+  </div>
+  <div id="browse-view"><div class="loading"><div class="spinner"></div><br>正在加载公式数据...</div></div>
+  <div id="flashcard-view" class="hidden">
+    <div class="flash-subject-select">
+      <button class="tab-btn active flash-filter" data-f="all">全部</button>
+      <button class="tab-btn flash-filter" data-f="math">数学</button>
+      <button class="tab-btn flash-filter" data-f="physics">物理</button>
+      <button class="tab-btn flash-filter" data-f="chemistry">化学</button>
+    </div>
+    <div class="flash-subject-select" style="margin-bottom:8px">
+      <button class="tab-btn active flash-grade-filter" data-fg="all">全部年级</button>
+      <button class="tab-btn flash-grade-filter" data-fg="7">初一</button>
+      <button class="tab-btn flash-grade-filter" data-fg="8">初二</button>
+      <button class="tab-btn flash-grade-filter" data-fg="9">初三</button>
+    </div>
+    <div class="flashcard-container">
+      <div class="flashcard" id="flashcard" onclick="flipCard()">
+        <div class="flash-front" id="flash-front"></div>
+        <div class="flash-back" id="flash-back"></div>
+        <div class="flash-variants" id="flash-variants"></div>
+        <div class="flash-desc" id="flash-desc"></div>
+        <div class="flash-hint">点击卡片翻转查看答案</div>
+      </div>
+      <div class="flash-nav">
+        <button class="btn-prev" onclick="prevFlash()">上一个</button>
+        <span class="counter" id="flash-counter">1 / 1</span>
+        <button class="btn-flip" onclick="flipCard()">翻转</button>
+        <button class="btn-next" onclick="nextFlash()">下一个</button>
+      </div>
+    </div>
+  </div>
+  <div id="gapfill-view" class="hidden">
+    <div class="gapfill-container">
+      <div class="gapfill-card" id="gapfill-card">
+        <div class="q-title" id="gf-title"></div>
+        <div class="gf-formula" id="gf-formula"></div>
+        <input class="gapfill-input" id="gf-input" placeholder="输入缺失部分" onkeydown="if(event.key==='Enter')checkGapfill()">
+        <button class="mode-btn" style="margin-top:8px" onclick="checkGapfill()">确认</button>
+        <div class="gapfill-result" id="gf-result"></div>
+      </div>
+      <div class="gapfill-nav">
+        <button class="btn-prev" onclick="prevGapfill()">上一题</button>
+        <span style="font-size:.85rem;color:var(--sub);align-self:center" id="gf-counter"></span>
+        <button class="btn-next" onclick="nextGapfill()">下一题</button>
+      </div>
+    </div>
+  </div>
+  <div id="quiz-view" class="hidden">
+    <div class="quiz-container">
+      <div class="quiz-score" id="quiz-score"></div>
+      <div class="quiz-question" id="quiz-question">
+        <div class="q-title" id="quiz-title"></div>
+        <div class="q-formula" id="quiz-formula"></div>
+        <div class="quiz-options" id="quiz-options"></div>
+        <div class="quiz-result" id="quiz-result"></div>
+      </div>
+      <div class="quiz-nav">
+        <button class="btn-next" id="quiz-next" onclick="nextQuiz()">下一题</button>
+      </div>
+    </div>
+  </div>
+  <div id="convert-view" class="hidden">
+    <div class="convert-grid" id="convert-grid">
+      <div class="loading"><div class="spinner"></div><br>正在加载单位换算...</div>
+    </div>
+  </div>
+  <div id="periodic-view" class="hidden">
+    <div class="pt-legend" id="pt-legend"></div>
+    <div class="pt-toolbar">
+      <div class="pt-color-toggle">
+        <button class="active" data-cm="category" onclick="switchColorMode('category')">分类着色</button>
+        <button data-cm="state" onclick="switchColorMode('state')">状态着色</button>
+      </div>
+      <div class="pt-actions">
+        <button id="pt-flash-btn" onclick="togglePtMode('flash')">闪卡记忆</button>
+        <button id="pt-quiz-btn" onclick="togglePtMode('quiz')">配对测验</button>
+      </div>
+    </div>
+    <div class="pt-axis-row" id="pt-axis-row">
+      <div class="pt-period-col" id="pt-period-col"></div>
+      <div class="periodic-wrapper" id="pt-grid-wrap" style="flex:1;min-width:0">
+        <div class="pt-group-header-row" id="pt-group-headers"></div>
+        <div class="periodic-grid" id="periodic-grid"></div>
+      </div>
+    </div>
+    <div class="pt-view-toggle">
+      <button class="active" data-ptview="grid" onclick="switchPtView('grid')">表格</button>
+      <button data-ptview="list" onclick="switchPtView('list')">列表</button>
+    </div>
+    <div class="pt-list-mode" id="pt-list-wrap">
+      <div class="pt-list-grid" id="pt-list-grid"></div>
+    </div>
+    <div class="pt-detail-panel" id="pt-detail-panel"></div>
+    <div class="pt-flashcard-panel" id="pt-flashcard-panel">
+      <div class="ptf-card" id="ptf-card" onclick="flipPtCard()">
+        <div class="ptf-front">
+          <div class="ptf-symbol" id="ptf-symbol"></div>
+          <div class="ptf-z" id="ptf-z"></div>
+          <div class="ptf-hint">点击翻转查看详情</div>
+        </div>
+        <div class="ptf-back" id="ptf-back"></div>
+      </div>
+      <div class="pt-flashcard-nav">
+        <button class="ptf-prev" onclick="prevPtCard()">上一个</button>
+        <button class="ptf-flip" onclick="flipPtCard()">翻转</button>
+        <button class="ptf-next" onclick="nextPtCard()">下一个</button>
+        <span class="ptf-counter" id="ptf-counter"></span>
+      </div>
+    </div>
+    <div class="pt-quiz-panel" id="pt-quiz-panel">
+      <div class="ptq-score" id="ptq-score"></div>
+      <div class="ptq-question">
+        <div class="ptq-symbol" id="ptq-symbol"></div>
+        <div class="ptq-hint">这个元素的中文名称是什么？</div>
+      </div>
+      <div class="ptq-options" id="ptq-options"></div>
+      <div class="ptq-result" id="ptq-result"></div>
+      <div class="pt-quiz-nav">
+        <button id="ptq-next" onclick="nextPtQuiz()" class="hidden">下一题</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+
+
+
+// DOM 安全访问
+function el(id){var e=document.getElementById(id);return e;}
+
+// ============ API ============
+const API = '/api/formulas';
+let formulas = [];
+let formulasLoaded = false;
+
+function getAvailableGrades(subject) {
+  let src = formulas;
+  if (subject && subject !== 'all') src = src.filter(f => f.subject === subject);
+  const grades = [...new Set(src.map(f => f.grade))].sort((a, b) => a - b);
+  return grades;
+}
+
+async function loadFormulas(subject, grade, keyword) {
+  const params = new URLSearchParams();
+  if (subject && subject !== 'all') params.set('subject', subject);
+  if (grade && grade !== 'all') params.set('grade', grade);
+  if (keyword) params.set('keyword', keyword);
+  const url = `${API}?${params.toString()}`;
+  const res = await fetch(url);
+  const json = await res.json();
+  return json.data;
+}
+
+async function loadAllFormulas() {
+  if (formulasLoaded) return formulas;
+  const res = await fetch(`${API}?subject=all`);
+  const json = await res.json();
+  formulas = json.data;
+  formulasLoaded = true;
+  return formulas;
+}
+
+function updateGradeTabs(subject) {
+  const gradeBtns = document.querySelectorAll('#grade-tabs .tab-btn');
+  const grades = getAvailableGrades(subject);
+  gradeBtns.forEach(b => {
+    const g = parseInt(b.dataset.grade);
+    if (isNaN(g)) { b.style.display = ''; return; }
+    b.style.display = grades.includes(g) ? '' : 'none';
+  });
+}
+
+// ============ STATE ============
+let currentTab = 'all';
+let currentGrade = 'all';
+let currentMode = 'browse';
+let flashIndex = 0, flashFilter = 'all', flashGrade = 'all', flashFlipped = false;
+let gapfillIndex = 0;
+let quizIndex = 0, quizScore = 0, quizTotal = 0, quizAnswered = false;
+let shuffledQuiz = [];
+let flashList = [], gapfillList = [];
+
+// ============ INIT ============
+window.addEventListener('error',function(e){
+  try{
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#e74c3c;color:#fff;padding:10px 16px;z-index:9999;font-size:12px;font-family:monospace;word-break:break-all';
+    var stack='';
+    try{stack=e.error&&e.error.stack?(' STACK:'+e.error.stack):'';}catch(ex){}
+    d.textContent='JS ERROR: '+(e.message||'(no msg)')+' @ '+(e.filename||'?')+':'+e.lineno+':'+e.colno+stack;
+    try{document.body.appendChild(d);}catch(ex2){console.error('Cannot append error bar:',ex2);}
+  }catch(outer){console.error('Error handler failed:',outer);}
+});
+async function init() {
+  try{
+  await loadAllFormulas();
+  updateGradeTabs('all');
+  await renderBrowse();
+  bindEvents();
+  ensureKbHandler();
+  }catch(e){console.error('Init error:',e);}
+}
+let flashInited=false,gapfillInited=false,quizInited=false,convertInited=false,periodicInited=false;
+function bindEvents() {
+  document.querySelectorAll('#subject-tabs .tab-btn').forEach(b=>b.addEventListener('click',async function(){
+    var tab=this.dataset.tab;
+    // 单位换算和元素周期表直接切换模式
+    if(tab==='convert'||tab==='periodic'){
+      document.querySelectorAll('#subject-tabs .tab-btn').forEach(x=>x.classList.remove('active'));
+      this.classList.add('active');
+      // 同步模式按钮
+      document.querySelectorAll('.mode-btn').forEach(x=>x.classList.toggle('active',x.dataset.mode===tab));
+      currentMode=tab;
+      currentTab='all';currentGrade='all';
+      document.getElementById('browse-view').classList.add('hidden');
+      document.getElementById('flashcard-view').classList.add('hidden');
+      document.getElementById('gapfill-view').classList.add('hidden');
+      document.getElementById('quiz-view').classList.add('hidden');
+      document.getElementById('convert-view').classList.toggle('hidden',tab!=='convert');
+      document.getElementById('periodic-view').classList.toggle('hidden',tab!=='periodic');
+      document.getElementById('search-row').classList.add('hidden');
+      document.getElementById('grade-bar').classList.add('hidden');
+      if(tab==='convert'){
+        if(!convertInited){await loadConversions();convertInited=true;}
+        renderConversions();
+      }else{
+        if(!periodicInited){await initPeriodicTable();periodicInited=true;}
+        else{renderPeriodicTable();}
+      }
+      return;
+    }
+    document.querySelectorAll('#subject-tabs .tab-btn').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+    currentTab=this.dataset.tab;
+    currentGrade='all';
+    // 从单位换算/元素周期表切回学科时，恢复搜索和年级栏
+    document.getElementById('search-row').classList.remove('hidden');
+    document.getElementById('grade-bar').classList.remove('hidden');
+    document.getElementById('convert-view').classList.add('hidden');
+    document.getElementById('periodic-view').classList.add('hidden');
+    // 保持当前学习模式，不强制切回浏览
+    var prevMode=currentMode;
+    if(prevMode==='convert'||prevMode==='periodic'){prevMode='browse';currentMode='browse';}
+    document.getElementById('browse-view').classList.toggle('hidden',prevMode!=='browse');
+    document.getElementById('flashcard-view').classList.toggle('hidden',prevMode!=='flashcard');
+    document.getElementById('gapfill-view').classList.toggle('hidden',prevMode!=='gapfill');
+    document.getElementById('quiz-view').classList.toggle('hidden',prevMode!=='quiz');
+    document.querySelectorAll('.mode-btn').forEach(x=>x.classList.toggle('active',x.dataset.mode===prevMode));
+    document.querySelectorAll('#grade-tabs .tab-btn').forEach(x=>x.classList.remove('active'));
+    document.querySelector('#grade-tabs .tab-btn[data-grade="all"]').classList.add('active');
+    updateGradeTabs(currentTab);
+    if(prevMode==='browse'){await renderBrowse();}
+    else if(prevMode==='flashcard'){flashIndex=0;flashFlipped=false;flashGrade='all';renderFlashcard();}
+    else if(prevMode==='gapfill'){gapfillIndex=0;renderGapfill();}
+    else if(prevMode==='quiz'){await initQuiz();}
+  }));
+  document.querySelectorAll('#grade-tabs .tab-btn').forEach(b=>b.addEventListener('click',async function(){
+    document.querySelectorAll('#grade-tabs .tab-btn').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+    currentGrade=this.dataset.grade;
+    if(currentMode==='quiz'){await initQuiz();return;}
+    await renderBrowse();
+    if(currentMode==='flashcard'){flashIndex=0;flashFlipped=false;flashGrade=currentGrade;renderFlashcard();}
+    if(currentMode==='gapfill'){gapfillIndex=0;renderGapfill();}
+  }));
+  document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',async function(){
+    // 从单位换算/元素周期表切回学科模式时，复位顶部标签到"全部"
+    if(currentMode==='convert'||currentMode==='periodic'){
+      document.querySelectorAll('#subject-tabs .tab-btn').forEach(x=>x.classList.remove('active'));
+      var allBtn=document.querySelector('#subject-tabs .tab-btn[data-tab="all"]');
+      if(allBtn)allBtn.classList.add('active');
+      currentTab='all';currentGrade='all';
+      document.getElementById('convert-view').classList.add('hidden');
+      document.getElementById('periodic-view').classList.add('hidden');
+      document.getElementById('search-row').classList.remove('hidden');
+      document.getElementById('grade-bar').classList.remove('hidden');
+      updateGradeTabs('all');
+    }
+    document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+    currentMode=this.dataset.mode;
+    document.getElementById('browse-view').classList.toggle('hidden',currentMode!=='browse');
+    document.getElementById('flashcard-view').classList.toggle('hidden',currentMode!=='flashcard');
+    document.getElementById('gapfill-view').classList.toggle('hidden',currentMode!=='gapfill');
+    document.getElementById('quiz-view').classList.toggle('hidden',currentMode!=='quiz');
+    const sr=document.getElementById('search-row');
+    const gb=document.getElementById('grade-bar');
+    sr.classList.remove('hidden');gb.classList.remove('hidden');
+    if(currentMode==='flashcard'){
+      if(!flashInited){initFlashcards();flashInited=true;}
+      else{flashIndex=0;flashFlipped=false;flashGrade=currentGrade;renderFlashcard();}
+    }
+    if(currentMode==='gapfill'){
+      if(!gapfillInited){initGapfill();gapfillInited=true;}
+      else{gapfillIndex=0;renderGapfill();}
+    }
+    if(currentMode==='quiz'){
+      if(!quizInited){await initQuiz();quizInited=true;}
+      else{quizIndex=0;quizScore=0;quizTotal=0;quizAnswered=false;renderQuiz();}
+    }
+  }));
+  document.getElementById('search').addEventListener('input',renderBrowse);
+  document.querySelectorAll('.flash-filter').forEach(b=>b.addEventListener('click',function(){
+    document.querySelectorAll('.flash-filter').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+    flashFilter=this.dataset.f;
+    flashGrade=currentGrade;
+    flashIndex=0;flashFlipped=false;
+    renderFlashcard();
+  }));
+  document.querySelectorAll('.flash-grade-filter').forEach(b=>b.addEventListener('click',function(){
+    document.querySelectorAll('.flash-grade-filter').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+    flashGrade=this.dataset.fg;
+    flashIndex=0;flashFlipped=false;
+    renderFlashcard();
+  }));
+}
+
+// ============ BROWSE ============
+async function renderBrowse() {
+  try{
+  const container=el('browse-view');
+  if(!container)return;
+  const keyword = (el('search')||{}).value||'';
+  const f = await loadFormulas(currentTab, currentGrade, keyword.trim());
+  if(f.length===0){
+    container.innerHTML='<div style="text-align:center;padding:40px;color:var(--sub)">没有找到匹配的公式，请尝试其他关键词</div>';
+    return;
+  }
+  const subNames={math:'数学',physics:'物理',chemistry:'化学'};
+  const subColors={math:'var(--accent-math)',physics:'var(--accent-physics)',chemistry:'var(--accent-chemistry)'};
+  const gradeNames={7:'初一',8:'初二',9:'初三'};
+  container.innerHTML=f.map(x=>
+    `<div class="formula-card ${x.subject}">
+      <div class="subject-bar"></div>
+      <div class="header">
+        <span class="name">${x.name}</span>
+        <span class="tag" style="background:${subColors[x.subject]};color:#fff;font-weight:600">${subNames[x.subject]} · ${gradeNames[x.grade]||''}</span>
+      </div>
+      <div class="tags">${x.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      <div class="formula">${x.formula}</div>
+      ${x.variants.length?`<div class="variants">变形：${x.variants.map(v=>`<span>${v}</span>`).join('')}</div>`:''}
+      <div class="desc">${x.desc}</div>
+    </div>`
+  ).join('');
+  }catch(e){console.error('renderBrowse error:',e);}
+}
+
+// ============ FLASHCARD ============
+function getFlashData() {
+  const all = formulas;
+  let result = all;
+  if (flashFilter !== 'all') result = result.filter(f => f.subject === flashFilter);
+  if (flashGrade !== 'all') result = result.filter(f => f.grade === parseInt(flashGrade));
+  return result;
+}
+function initFlashcards() { flashIndex=0;flashFlipped=false; flashGrade=currentGrade; renderFlashcard(); }
+function renderFlashcard() {
+  try{
+  flashList = getFlashData();
+  if(flashList.length===0){
+    var ffe=el('flash-front');if(ffe)ffe.textContent='暂无公式';
+    var fbe=el('flash-back');if(fbe)fbe.textContent='';
+    var fce=el('flash-counter');if(fce)fce.textContent='0 / 0';
+    return;
+  }
+  if(flashIndex>=flashList.length)flashIndex=0;
+  if(flashIndex<0)flashIndex=flashList.length-1;
+  flashFlipped=false;
+  var fc=el('flashcard');if(fc)fc.classList.remove('show-back');
+  var f=flashList[flashIndex];
+  var gradeNames={7:'初一',8:'初二',9:'初三'};
+  var ff=el('flash-front');if(ff)ff.innerHTML=`<span style="font-size:0.85rem;color:var(--sub);display:block;margin-bottom:6px">${f.name} · ${gradeNames[f.grade]||''}</span>${f.formula}`;
+  var fb=el('flash-back');if(fb)fb.innerHTML=`<span style="font-size:0.85rem;color:var(--sub)">公式名称</span>${f.name}`;
+  var fv=el('flash-variants');if(fv)fv.textContent=f.variants.length?'变形：'+f.variants.join('；'):'';
+  var fd=el('flash-desc');if(fd)fd.textContent=f.desc;
+  var fcn=el('flash-counter');if(fcn)fcn.textContent=`${flashIndex+1} / ${flashList.length}`;
+  }catch(e){console.error('renderFlashcard error:',e);}
+}
+function flipCard() {
+  if(flashList.length===0)return;
+  flashFlipped=!flashFlipped;
+  var fc=el('flashcard');if(fc)fc.classList.toggle('show-back',flashFlipped);
+}
+function nextFlash() { if(flashList.length===0)return; flashIndex=(flashIndex+1)%flashList.length; renderFlashcard(); }
+function prevFlash() { if(flashList.length===0)return; flashIndex=(flashIndex-1+flashList.length)%flashList.length; renderFlashcard(); }
+
+// ============ GAPFILL ============
+function initGapfill() { gapfillIndex=0; renderGapfill(); }
+function getGapfillData() {
+  let result = formulas;
+  if (currentTab !== 'all') result = result.filter(f => f.subject === currentTab);
+  if (currentGrade !== 'all') result = result.filter(f => f.grade === parseInt(currentGrade));
+  return result;
+}
+function renderGapfill() {
+  try{
+  gapfillList = getGapfillData();
+  if(gapfillList.length===0){
+    var gte=el('gf-title');if(gte)gte.textContent='暂无题目';
+    return;
+  }
+  if(gapfillIndex>=gapfillList.length)gapfillIndex=0;
+  if(gapfillIndex<0)gapfillIndex=gapfillList.length-1;
+  var f=gapfillList[gapfillIndex];
+  var formulaHtml=f.formula;
+  var eqIdx=formulaHtml.indexOf('=');
+  var blanked='', answer='';
+  if(eqIdx>0){
+    answer=formulaHtml.substring(eqIdx+1).trim();
+    var semiIdx=answer.indexOf('；');
+    var commaIdx=answer.indexOf('，');
+    var sepIdx=-1;
+    if(semiIdx>0&&commaIdx>0)sepIdx=Math.min(semiIdx,commaIdx);
+    else if(semiIdx>0)sepIdx=semiIdx;
+    else if(commaIdx>0)sepIdx=commaIdx;
+    if(sepIdx>0)answer=answer.substring(0,sepIdx).trim();
+    blanked=formulaHtml.substring(0,eqIdx)+'= <span class="gf-blank">______</span>';
+    if(sepIdx>0)blanked+=' '+formulaHtml.substring(eqIdx+sepIdx);
+  } else {
+    blanked=formulaHtml.replace(/= [^,，；]+/,'= <span class="gf-blank">______</span>');
+    answer=formulaHtml.match(/= ([^,，；]+)/)?.[1]||formulaHtml;
+  }
+  var ge=el('gf-title');if(ge)ge.textContent=f.name;
+  var gfe=el('gf-formula');if(gfe)gfe.innerHTML=blanked;
+  var gie=el('gf-input');if(gie)gie.value='';
+  var gre=el('gf-result');if(gre){gre.textContent='';gre.style.color='';}
+  var gce=el('gf-counter');if(gce)gce.textContent=`${gapfillIndex+1} / ${gapfillList.length}`;
+  var gc=el('gapfill-card');if(gc)gc._answer=answer;
+  }catch(e){console.error('renderGapfill error:',e);}
+}
+function checkGapfill() {
+  const input=document.getElementById('gf-input').value.trim();
+  const answer=document.getElementById('gapfill-card')._answer||'';
+  const resultEl=document.getElementById('gf-result');
+  if(!input){resultEl.textContent='请输入答案';resultEl.style.color='#e74c3c';return;}
+  const norm=s=>s.replace(/\s+/g,'').replace(/[（）]/g,'(').replace(/×/g,'*').replace(/÷/g,'/').toLowerCase();
+  if(norm(input)===norm(answer)||input===answer){
+    resultEl.textContent='正确！答案：'+answer;
+    resultEl.style.color='var(--accent-chemistry)';
+  } else {
+    resultEl.textContent='错误！正确答案：'+answer;
+    resultEl.style.color='var(--accent-math)';
+  }
+}
+function nextGapfill() { if(gapfillList.length===0)return; gapfillIndex=(gapfillIndex+1)%gapfillList.length; renderGapfill(); }
+function prevGapfill() { if(gapfillList.length===0)return; gapfillIndex=(gapfillIndex-1+gapfillList.length)%gapfillList.length; renderGapfill(); }
+
+// ============ QUIZ ============
+async function initQuiz() {
+  quizIndex=0;quizScore=0;quizTotal=0;quizAnswered=false;
+  const all=await loadAllFormulas();
+  var filtered=all;
+  if(currentTab!=='all')filtered=filtered.filter(function(f){return f.subject===currentTab;});
+  if(currentGrade!=='all')filtered=filtered.filter(function(f){return f.grade===parseInt(currentGrade);});
+  shuffledQuiz=[...filtered].sort(function(){return Math.random()-.5;}).slice(0,15);
+  renderQuiz();
+}
+function renderQuiz() {
+  try{
+  if(quizIndex>=shuffledQuiz.length){
+    var sqe=el('quiz-score');if(sqe)sqe.textContent=`测验完成！总分：${quizScore}/${quizTotal}`;
+    var qte=el('quiz-title');if(qte)qte.textContent='';
+    var qfe=el('quiz-formula');if(qfe)qfe.textContent='';
+    var qoe=el('quiz-options');if(qoe)qoe.innerHTML='';
+    var qre=el('quiz-result');if(qre)qre.innerHTML=`<div style="text-align:center;padding:30px;font-size:1.2rem">恭喜完成所有题目！<br><br>得分：${quizScore}/${quizTotal}<br><br><button class="mode-btn" onclick="initQuiz()" style="cursor:pointer">重新开始</button></div>`;
+    return;
+  }
+  quizAnswered=false;
+  var f=shuffledQuiz[quizIndex];
+  var se=el('quiz-score');if(se)se.textContent=`第 ${quizIndex+1}/${shuffledQuiz.length} 题 | 得分：${quizScore}/${quizTotal}`;
+  var te=el('quiz-title');if(te)te.textContent=`【${f.tags[0]||''}】以下哪个公式是"${f.name}"？`;
+  var fe=el('quiz-formula');if(fe)fe.textContent='';
+  var re=el('quiz-result');if(re)re.textContent='';
+  var options=[f];
+  var others=formulas.filter(function(x){return x.id!==f.id;});
+  while(options.length<4){
+    var r=others[Math.floor(Math.random()*others.length)];
+    if(!options.find(function(o){return o.id===r.id;}))options.push(r);
+    if(others.length<=options.length)break;
+  }
+  options=options.sort(function(){return Math.random()-.5;});
+  var oe=el('quiz-options');if(oe)oe.innerHTML=options.map(function(o,i){
+    return `<div class="quiz-option" data-id="${o.id}" data-index="${i}" onclick="answerQuiz(this,${o.id===f.id})">${o.formula}</div>`;
+  }).join('');
+  var ne=el('quiz-next');if(ne)ne.classList.add('hidden');
+  }catch(e){console.error('renderQuiz error:',e);}
+}
+function answerQuiz(ell,correct) {
+  if(quizAnswered)return;
+  quizAnswered=true;quizTotal++;
+  if(correct){quizScore++;ell.classList.add('correct');}
+  else{ell.classList.add('wrong');
+    document.querySelectorAll('.quiz-option').forEach(function(o){
+      if(shuffledQuiz[quizIndex]&&Number(o.dataset.id)===shuffledQuiz[quizIndex].id)o.classList.add('correct');
+    });
+  }
+  var re=el('quiz-result');if(re){re.textContent=correct?'回答正确！':('回答错误！正确答案是：'+shuffledQuiz[quizIndex].name);re.style.color=correct?'var(--accent-chemistry)':'var(--accent-math)';}
+  var ne=el('quiz-next');if(ne)ne.classList.remove('hidden');
+}
+function nextQuiz() { quizIndex++; renderQuiz(); }
+
+// ============ UNIT CONVERSION ============
+let conversions = [];
+let conversionsLoaded = false;
+
+function escHtml(s) { if(s==null)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+
+async function loadConversions() {
+  if (conversionsLoaded) return conversions;
+  const res = await fetch('/api/conversions');
+  const json = await res.json();
+  conversions = json.data;
+  conversionsLoaded = true;
+  return conversions;
+}
+
+function renderConversions() {
+  try{
+  var grid = el('convert-grid');
+  if(!grid)return;
+  if (conversions.length === 0) {
+    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--sub)">暂无换算数据</div>';
+    return;
+  }
+  grid.innerHTML = conversions.map(function(c){
+    return `<div class="convert-card">
+      <div class="card-head">
+        <span class="icon">${c.icon || ''}</span>
+        <span class="title">${escHtml(c.category)}</span>
+      </div>
+      <div class="card-desc">${escHtml(c.desc)}</div>
+      <div class="convert-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22%">大单位</th>
+            <th style="width:22%">小单位</th>
+            <th style="width:28%">正序（大→小）</th>
+            <th style="width:28%">倒序（小→大）</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${(c.pairs||[]).map(function(p){
+            return `<tr>
+              <td><strong>${escHtml(p.big)}</strong></td>
+              <td><strong>${escHtml(p.small)}</strong></td>
+              <td class="asc">${escHtml(p.asc)}</td>
+              <td class="desc">${escHtml(p.desc)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
+  }).join('');
+  }catch(e){console.error('renderConversions error:',e);}
+}
+
+// ============ PERIODIC TABLE ============
+let periodicTable=[];
+let periodicFilter='all';
+let ptSelectedZ=null;
+let ptViewMode='grid';
+let ptColorMode='category';
+let ptHighlightGroup=null;
+let ptHighlightPeriod=null;
+let ptfIndex=0, ptfFlipped=false, ptfList=[];
+let ptActivePanel=null;
+let ptqList=[], ptqIndex=0, ptqScore=0, ptqTotal=0, ptqAnswered=false;
+
+function switchPtView(mode){
+  ptViewMode=mode;
+  document.querySelectorAll('.pt-view-toggle button').forEach(function(b){
+    b.classList.toggle('active',b.dataset.ptview===mode);
+  });
+  var axis=el('pt-axis-row');if(axis)axis.style.display=mode==='grid'?'flex':'none';
+  var gw=el('pt-grid-wrap');if(gw)gw.style.display=mode==='grid'?'block':'none';
+  var lw=el('pt-list-wrap');if(lw){lw.classList.toggle('active',mode==='list');}
+  if(mode==='list')renderPtList();
+}
+
+const CAT_COLORS={
+  'alkali-metal':'pt-alkali','alkaline-earth':'pt-alkaline',
+  'transition-metal':'pt-transition','post-transition':'pt-post',
+  'metalloid':'pt-metalloid','nonmetal':'pt-nonmetal',
+  'halogen':'pt-halogen','noble-gas':'pt-noble',
+  'lanthanide':'pt-lanthanide','actinide':'pt-actinide'
+};
+const CAT_NAMES={
+  'alkali-metal':'碱金属','alkaline-earth':'碱土金属',
+  'transition-metal':'过渡金属','post-transition':'后过渡金属',
+  'metalloid':'类金属','nonmetal':'非金属',
+  'halogen':'卤素','noble-gas':'稀有气体',
+  'lanthanide':'镧系元素','actinide':'锕系元素'
+};
+
+async function initPeriodicTable(){
+  try{
+    var res=await fetch('/api/periodic-table');
+    var json=await res.json();
+    periodicTable=json.data;
+    renderPtLegend();
+    renderPeriodicTable();
+    renderPtList();
+  }catch(e){console.error('Periodic table init error:',e);}
+}
+
+function renderPtLegend(){
+  var leg=el('pt-legend');
+  if(!leg)return;
+  var cats=Object.keys(CAT_NAMES);
+  var h='<span class="pt-legend-item" data-cat="all" onclick="filterPeriodic(\'all\')" style="cursor:pointer"><span class="pt-legend-dot" style="background:#aaa"></span>全部</span>';
+  for(var i=0;i<cats.length;i++){
+    var c=cats[i];
+    var cls=CAT_COLORS[c]||'';
+    h+='<span class="pt-legend-item" data-cat="'+c+'" onclick="filterPeriodic(\''+c+'\')" style="cursor:pointer"><span class="pt-legend-dot" style="background:var(--'+cls+')"></span>'+CAT_NAMES[c]+'</span>';
+  }
+  leg.innerHTML=h;
+}
+
+function filterPeriodic(cat){
+  periodicFilter=cat;
+  ptSelectedZ=null;
+  var panel=el('pt-detail-panel');if(panel){panel.classList.remove('show');panel.innerHTML='';}
+  var items=document.querySelectorAll('.pt-legend-item');
+  items.forEach(function(x){x.classList.toggle('active',x.dataset.cat===cat);});
+  renderPeriodicTable();
+  renderPtList();
+}
+
+function switchColorMode(mode){
+  ptColorMode=mode;
+  document.querySelectorAll('.pt-color-toggle button').forEach(function(b){
+    b.classList.toggle('active',b.dataset.cm===mode);
+  });
+  renderPeriodicTable();
+  renderPtList();
+}
+
+function renderPtGroupHeaders(){
+  var cont=el('pt-group-headers');if(!cont)return;
+  var h='';
+  for(var g=1;g<=18;g++){
+    var cls='pt-group-header';
+    if(ptHighlightGroup===g)cls+=' active';
+    h+='<div class="'+cls+'" data-group="'+g+'" onclick="highlightGroup('+g+')">'+g+'</div>';
+  }
+  cont.innerHTML=h;
+}
+
+function renderPtPeriodLabels(){
+  var cont=el('pt-period-col');if(!cont)return;
+  var h='';
+  for(var p=1;p<=7;p++){
+    var cls='pt-period-label';
+    if(ptHighlightPeriod===p)cls+=' active';
+    h+='<div class="'+cls+'" data-period="'+p+'" onclick="highlightPeriod('+p+')">'+p+'</div>';
+  }
+  h+='<div class="pt-period-placeholder"></div>';
+  h+='<div class="pt-period-placeholder"></div>';
+  cont.innerHTML=h;
+}
+
+function highlightGroup(g){
+  ptHighlightGroup=(ptHighlightGroup===g)?null:g;
+  ptHighlightPeriod=null;
+  renderPtGroupHeaders();
+  renderPtPeriodLabels();
+  renderPeriodicTable();
+}
+
+function highlightPeriod(p){
+  ptHighlightPeriod=(ptHighlightPeriod===p)?null:p;
+  ptHighlightGroup=null;
+  renderPtGroupHeaders();
+  renderPtPeriodLabels();
+  renderPeriodicTable();
+}
+
+function getPtCellColorClass(elObj){
+  if(!elObj||!elObj.el)return '';
+  var e=elObj.el;
+  if(ptColorMode==='state'){
+    if(e.state==='固体')return 'pt-state-solid';
+    if(e.state==='液体')return 'pt-state-liquid';
+    if(e.state==='气体')return 'pt-state-gas';
+    return 'pt-state-unknown';
+  }
+  return CAT_COLORS[e.cat]||'';
+}
+
+function renderPeriodicTable(){
+  try{
+  renderPtGroupHeaders();
+  renderPtPeriodLabels();
+  var grid=el('periodic-grid');
+  if(!grid)return;
+  var tableByGroup={};
+  var mainEls=periodicTable.filter(function(e){
+    return typeof e.group==='number' && e.group>=1 && e.group<=18;
+  });
+  var laEls=periodicTable.filter(function(e){return e.cat==='lanthanide';});
+  var anEls=periodicTable.filter(function(e){return e.cat==='actinide';});
+
+  var gridData=[];
+  for(var r=0;r<10;r++){
+    gridData[r]=[];
+    for(var c=0;c<18;c++){
+      gridData[r][c]=null;
+    }
+  }
+
+  for(var i=0;i<mainEls.length;i++){
+    var e=mainEls[i];
+    if(periodicFilter!=='all'&&e.cat!==periodicFilter){
+      gridData[e.period-1][e.group-1]={el:e, ghost:true};
+    }else{
+      gridData[e.period-1][e.group-1]={el:e, ghost:false};
+    }
+  }
+
+  for(var i=0;i<laEls.length;i++){
+    var e=laEls[i];
+    if(e.group==='LN'){
+      var colIdx=(e.lnIndex!==undefined)?e.lnIndex:0;
+      if(periodicFilter!=='all'&&e.cat!==periodicFilter){
+        gridData[8][colIdx]={el:e, ghost:true};
+      }else{
+        gridData[8][colIdx]={el:e, ghost:false};
+      }
+    }
+  }
+
+  for(var i=0;i<anEls.length;i++){
+    var e=anEls[i];
+    if(e.group==='AN'){
+      var colIdx=(e.anIndex!==undefined)?e.anIndex:0;
+      if(periodicFilter!=='all'&&e.cat!==periodicFilter){
+        gridData[9][colIdx]={el:e, ghost:true};
+      }else{
+        gridData[9][colIdx]={el:e, ghost:false};
+      }
+    }
+  }
+
+  var html='';
+
+  function cellHTML(eo, cssExtra, periodNum, groupNum){
+    if(!eo)return '<div class="pt-cell pt-empty"></div>';
+    var extraCls=cssExtra||'';
+    if(ptHighlightGroup!==null && groupNum===ptHighlightGroup) extraCls+=' pt-group-hl';
+    if(ptHighlightPeriod!==null && periodNum===ptHighlightPeriod) extraCls+=' pt-period-hl';
+    if(eo.ghost){
+      return '<div class="pt-cell pt-ghost" style="opacity:.15;cursor:default">'+
+        '<span class="pt-z">'+eo.el.z+'</span>'+
+        '<span class="pt-symbol">'+safeText(eo.el.symbol)+'</span>'+
+        '<span class="pt-name">'+safeText(eo.el.name)+'</span>'+
+        '</div>';
+    }
+    var colorCls=getPtCellColorClass(eo);
+    var cls='pt-cell '+colorCls;
+    if(extraCls)cls+=' '+extraCls;
+    return '<div class="'+cls+'" onclick="showElementDetail('+eo.el.z+')" title="'+safeText(eo.el.name)+'('+eo.el.symbol+')" data-group="'+groupNum+'" data-period="'+periodNum+'">'+
+      '<span class="pt-z">'+eo.el.z+'</span>'+
+      '<span class="pt-symbol">'+safeText(eo.el.symbol)+'</span>'+
+      '<span class="pt-name">'+safeText(eo.el.name)+'</span>'+
+      '</div>';
+  }
+
+  function safeText(s){if(s==null)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+  // 渲染7个周期
+  for(var r=0;r<7;r++){
+    for(var c=0;c<18;c++){
+      var ce=gridData[r][c];
+      if(ce===null){
+        html+='<div class="pt-cell pt-empty"></div>';
+      }else{
+        html+=cellHTML(ce,'',r+1,c+1);
+      }
+    }
+  }
+
+  // 空行：显示标签 "镧系"
+  html+='<div class="pt-series-label">镧系 →</div>';
+  for(var c=0;c<16;c++){
+    var le=gridData[8]?gridData[8][c]:null;
+    html+=cellHTML(le,'',null,null);
+  }
+
+  // 空行：显示标签 "锕系"
+  html+='<div class="pt-series-label actinide-label">锕系 →</div>';
+  for(var c=0;c<16;c++){
+    var ae=gridData[9]?gridData[9][c]:null;
+    html+=cellHTML(ae,'',null,null);
+  }
+
+  // 销毁前禁用所有过渡，防止 layout 引擎对已移除元素调用 getBoundingClientRect
+  var cells=grid.querySelectorAll('.pt-cell');
+  for(var ci=0;ci<cells.length;ci++){cells[ci].style.transition='none';}
+  grid.innerHTML=html;
+  }catch(e){console.error('renderPeriodicTable error:',e);}
+}
+
+function showElementDetail(z){
+  ptSelectedZ=z;
+  var e=periodicTable.find(function(x){return x.z===z;});
+  if(!e)return;
+  var panel=el('pt-detail-panel');
+  if(!panel)return;
+  var catCls=CAT_COLORS[e.cat]||'';
+  var symbolColor='';
+  if(ptColorMode==='state'){
+    if(e.state==='固体')symbolColor='color:#b0b0b8';
+    else if(e.state==='液体')symbolColor='color:#4dabf7';
+    else if(e.state==='气体')symbolColor='color:#ff6b6b';
+    else symbolColor='color:#d0d0d6';
+  }else{
+    symbolColor='color:var(--'+catCls+')';
+  }
+  var catName=CAT_NAMES[e.cat]||e.cat;
+  var grpText=(typeof e.group==='number')?e.group:'—';
+  var perText=e.period;
+  var yrText=(e.year&&e.year>0)?e.year+'年':'古代已知';
+  var massText=(typeof e.mass==='number')?e.mass.toFixed(2):e.mass;
+
+  panel.innerHTML=
+    '<div class="pt-d-header">'+
+      '<div class="pt-d-symbol" style="'+symbolColor+'">'+safeText2(e.symbol)+'</div>'+
+      '<div>'+
+        '<div class="pt-d-name">'+safeText2(e.name)+'</div>'+
+        '<div class="pt-d-en">'+safeText2(e.enName)+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="pt-d-info">'+
+      '<div class="pt-d-row"><span class="pt-d-label">原子序数</span><span class="pt-d-val">'+e.z+'</span></div>'+
+      '<div class="pt-d-row"><span class="pt-d-label">相对原子质量</span><span class="pt-d-val">'+massText+'</span></div>'+
+      '<div class="pt-d-row"><span class="pt-d-label">族</span><span class="pt-d-val">'+grpText+'</span></div>'+
+      '<div class="pt-d-row"><span class="pt-d-label">周期</span><span class="pt-d-val">'+perText+'</span></div>'+
+      '<div class="pt-d-row"><span class="pt-d-label">类别</span><span class="pt-d-val">'+catName+'</span></div>'+
+      '<div class="pt-d-row"><span class="pt-d-label">常温状态</span><span class="pt-d-val">'+safeText2(e.state)+'</span></div>'+
+      '<div class="pt-d-row"><span class="pt-d-label">电子层排布</span><span class="pt-d-val">'+safeText2(e.shell)+'</span></div>'+
+      '<div class="pt-d-row"><span class="pt-d-label">发现年代</span><span class="pt-d-val">'+yrText+'</span></div>'+
+    '</div>';
+  panel.classList.add('show');
+  function safeText2(s){if(s==null)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+}
+
+function renderPtList(){
+  try{
+  var grid=el('pt-list-grid');
+  if(!grid)return;
+  var cats=Object.keys(CAT_COLORS);
+  var filtered=periodicFilter==='all'?periodicTable:periodicTable.filter(function(e){return e.cat===periodicFilter;});
+  filtered=filtered.sort(function(a,b){return a.z-b.z;});
+  grid.innerHTML=filtered.map(function(e){
+    var bgStyle='';
+    if(ptColorMode==='state'){
+      if(e.state==='固体')bgStyle='background:#b0b0b8';
+      else if(e.state==='液体')bgStyle='background:#4dabf7';
+      else if(e.state==='气体')bgStyle='background:#ff6b6b';
+      else bgStyle='background:#d0d0d6';
+    }else{
+      var catCls=CAT_COLORS[e.cat]||'';
+      bgStyle='background:var(--'+catCls+')';
+    }
+    return '<div class="pt-list-item" onclick="showElementDetail('+e.z+')">'+
+      '<div class="pt-li-symbol" style="'+bgStyle+'">'+safeText3(e.symbol)+'</div>'+
+      '<div class="pt-li-info">'+
+        '<div class="pt-li-name">'+safeText3(e.name)+'</div>'+
+        '<div class="pt-li-sub">'+safeText3(e.enName)+'</div>'+
+      '</div>'+
+      '<div class="pt-li-z">#'+e.z+'</div>'+
+    '</div>';
+  }).join('');
+  }catch(e){console.error('renderPtList error:',e);}
+  function safeText3(s){if(s==null)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+}
+
+// ============ 元素闪卡 ============
+function togglePtMode(mode){
+  var flashPanel=el('pt-flashcard-panel');
+  var quizPanel=el('pt-quiz-panel');
+  var flashBtn=el('pt-flash-btn');
+  var quizBtn=el('pt-quiz-btn');
+  var detailPanel=el('pt-detail-panel');
+  if(ptActivePanel===mode){
+    // 再次点击关闭
+    ptActivePanel=null;
+    if(flashPanel)flashPanel.classList.remove('show');
+    if(quizPanel)quizPanel.classList.remove('show');
+    if(flashBtn)flashBtn.classList.remove('active');
+    if(quizBtn)quizBtn.classList.remove('active');
+    if(detailPanel){detailPanel.classList.remove('show');detailPanel.innerHTML='';}
+    return;
+  }
+  ptActivePanel=mode;
+  if(flashPanel)flashPanel.classList.toggle('show',mode==='flash');
+  if(quizPanel)quizPanel.classList.toggle('show',mode==='quiz');
+  if(flashBtn)flashBtn.classList.toggle('active',mode==='flash');
+  if(quizBtn)quizBtn.classList.toggle('active',mode==='quiz');
+  if(detailPanel){detailPanel.classList.remove('show');detailPanel.innerHTML='';}
+  if(mode==='flash')initPtFlashcards();
+  else if(mode==='quiz')initPtQuiz();
+}
+
+function initPtFlashcards(){
+  ptfList=periodicFilter==='all'?periodicTable:periodicTable.filter(function(e){return e.cat===periodicFilter;});
+  ptfList=ptfList.sort(function(a,b){return a.z-b.z;});
+  ptfIndex=0;ptfFlipped=false;
+  renderPtFlashcard();
+}
+
+function renderPtFlashcard(){
+  if(ptfList.length===0)return;
+  if(ptfIndex>=ptfList.length)ptfIndex=0;
+  if(ptfIndex<0)ptfIndex=ptfList.length-1;
+  ptfFlipped=false;
+  var e=ptfList[ptfIndex];
+  var card=el('ptf-card');if(card)card.classList.remove('flipped');
+  var sy=el('ptf-symbol');if(sy)sy.textContent=e.symbol;
+  var z=el('ptf-z');if(z)z.textContent='原子序数 '+e.z;
+  var catName=CAT_NAMES[e.cat]||e.cat;
+  var grpText=(typeof e.group==='number')?e.group:'—';
+  var back=el('ptf-back');if(back)back.innerHTML=
+    '<div class="ptf-name">'+escHtml(e.name)+'</div>'+
+    '<div class="ptf-en">'+escHtml(e.enName)+'</div>'+
+    '<div class="ptf-info">'+
+      '<div><span>原子序数</span><strong>'+e.z+'</strong></div>'+
+      '<div><span>相对原子质量</span><strong>'+(typeof e.mass==='number'?e.mass.toFixed(2):e.mass)+'</strong></div>'+
+      '<div><span>族</span><strong>'+grpText+'</strong></div>'+
+      '<div><span>周期</span><strong>'+e.period+'</strong></div>'+
+      '<div><span>类别</span><strong>'+catName+'</strong></div>'+
+      '<div><span>状态</span><strong>'+escHtml(e.state)+'</strong></div>'+
+      '<div><span>电子排布</span><strong>'+escHtml(e.shell)+'</strong></div>'+
+    '</div>';
+  var cn=el('ptf-counter');if(cn)cn.textContent=(ptfIndex+1)+' / '+ptfList.length;
+}
+
+function flipPtCard(){if(ptfList.length===0)return;ptfFlipped=!ptfFlipped;var c=el('ptf-card');if(c)c.classList.toggle('flipped',ptfFlipped);}
+function nextPtCard(){if(ptfList.length===0)return;ptfIndex=(ptfIndex+1)%ptfList.length;renderPtFlashcard();}
+function prevPtCard(){if(ptfList.length===0)return;ptfIndex=(ptfIndex-1+ptfList.length)%ptfList.length;renderPtFlashcard();}
+
+// ============ 配对测验 ============
+function initPtQuiz(){
+  ptqList=periodicFilter==='all'?periodicTable:periodicTable.filter(function(e){return e.cat===periodicFilter;});
+  ptqIndex=0;ptqScore=0;ptqTotal=0;ptqAnswered=false;
+  // 只取有明确中文名的
+  ptqList=ptqList.filter(function(e){return e.name&&e.symbol;});
+  ptqList=[...ptqList].sort(function(){return Math.random()-.5;});
+  renderPtQuiz();
+}
+
+function renderPtQuiz(){
+  if(ptqIndex>=ptqList.length){
+    var se=el('ptq-score');if(se)se.textContent='测验完成！总分：'+ptqScore+'/'+ptqTotal;
+    var sy=el('ptq-symbol');if(sy)sy.textContent='';
+    var oo=el('ptq-options');if(oo)oo.innerHTML='';
+    var re=el('ptq-result');if(re)re.innerHTML='<div style="text-align:center;padding:20px;font-size:1rem">全部完成！<br><br>得分：'+ptqScore+'/'+ptqTotal+'<br><br><button class="mode-btn" onclick="initPtQuiz()" style="cursor:pointer">重新开始</button></div>';
+    var ne=el('ptq-next');if(ne)ne.classList.add('hidden');
+    return;
+  }
+  ptqAnswered=false;
+  var cur=ptqList[ptqIndex];
+  var se=el('ptq-score');if(se)se.textContent='第 '+(ptqIndex+1)+'/'+ptqList.length+' 题 | 得分：'+ptqScore+'/'+ptqTotal;
+  var sy=el('ptq-symbol');if(sy)sy.textContent=cur.symbol;
+  var re=el('ptq-result');if(re){re.textContent='';re.style.color='';}
+  var ne=el('ptq-next');if(ne)ne.classList.add('hidden');
+  // 生成4个选项（1个正确答案+3个随机打乱的不重复错误答案）
+  var pool=periodicTable.filter(function(e){return e.symbol!==cur.symbol&&e.name;});
+  pool=[...pool].sort(function(){return Math.random()-.5;});
+  var options=[cur];
+  for(var j=0;j<pool.length&&options.length<4;j++){
+    if(!options.some(function(o){return o.z===pool[j].z;}))options.push(pool[j]);
+  }
+  options=options.sort(function(){return Math.random()-.5;});
+  var curZ=cur.z;
+  var oo=el('ptq-options');if(oo)oo.innerHTML=options.map(function(o){
+    return '<div class="ptq-option" data-z="'+o.z+'" onclick="answerPtQuiz(this,'+o.z+','+curZ+')">'+escHtml(o.name)+'</div>';
+  }).join('');
+}
+
+function answerPtQuiz(optEl,selectedZ,correctZ){
+  if(ptqAnswered)return;
+  ptqAnswered=true;ptqTotal++;
+  var isCorrect=(selectedZ===correctZ);
+  if(isCorrect){ptqScore++;optEl.classList.add('correct');}
+  else{optEl.classList.add('wrong');
+    document.querySelectorAll('.ptq-option').forEach(function(o){
+      if(Number(o.dataset.z)===correctZ)o.classList.add('correct');
+    });
+  }
+  var cur=periodicTable.find(function(e){return e.z===correctZ;});
+  var re=el('ptq-result');if(re){
+    re.textContent=isCorrect?'正确！':('错误！正确答案：'+(cur?cur.name:''));
+    re.style.color=isCorrect?'var(--accent-chemistry)':'var(--accent-math)';
+  }
+  var ne=el('ptq-next');if(ne)ne.classList.remove('hidden');
+}
+function nextPtQuiz(){ptqIndex++;renderPtQuiz();}
+
+// ============ KEYBOARD ============
+let kbHandler=null;
+function ensureKbHandler(){
+  if(kbHandler)document.removeEventListener('keydown',kbHandler);
+  kbHandler=function(e){
+    if(currentMode==='flashcard'){
+      if(e.key==='ArrowRight'){e.preventDefault();nextFlash();}
+      else if(e.key==='ArrowLeft'){e.preventDefault();prevFlash();}
+      else if(e.key===' '||e.key==='Enter'){e.preventDefault();flipCard();}
+    }
+    if(currentMode==='gapfill'){
+      if(e.key==='ArrowRight'){e.preventDefault();nextGapfill();}
+      else if(e.key==='ArrowLeft'){e.preventDefault();prevGapfill();}
+    }
+    if(currentMode==='quiz'&&!quizAnswered){
+      if(e.key==='1'){const opts=document.querySelectorAll('.quiz-option');if(opts[0])opts[0].click();}
+      if(e.key==='2'){const opts=document.querySelectorAll('.quiz-option');if(opts[1])opts[1].click();}
+      if(e.key==='3'){const opts=document.querySelectorAll('.quiz-option');if(opts[2])opts[2].click();}
+      if(e.key==='4'){const opts=document.querySelectorAll('.quiz-option');if(opts[3])opts[3].click();}
+    }
+  };
+  document.addEventListener('keydown',kbHandler);
+}
+
+(function boot(){
+  function safeInit(){
+    try{init().catch(function(e){console.error('Init failed:',e);});}
+    catch(e){console.error('Boot error:',e);}
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){
+      requestAnimationFrame(function(){requestAnimationFrame(safeInit);});
+    });
+  }else{
+    requestAnimationFrame(function(){requestAnimationFrame(safeInit);});
+  }
+})();
+window.addEventListener('unhandledrejection',function(e){
+  console.error('Unhandled rejection:',e.reason);
+  e.preventDefault();
+});
+</script>
+</body>
+</html>

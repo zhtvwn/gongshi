@@ -1,0 +1,117 @@
+[
+  {
+    "id": "length",
+    "category": "长度",
+    "icon": "📏",
+    "desc": "常用长度单位之间的换算关系。相邻单位进率为10（除km→m为10³）。",
+    "pairs": [
+      {"big":"千米 (km)","small":"米 (m)","asc":"1 km = 10³ m = 1000 m","desc":"1 m = 10⁻³ km = 0.001 km"},
+      {"big":"米 (m)","small":"分米 (dm)","asc":"1 m = 10 dm","desc":"1 dm = 10⁻¹ m = 0.1 m"},
+      {"big":"分米 (dm)","small":"厘米 (cm)","asc":"1 dm = 10 cm","desc":"1 cm = 10⁻¹ dm = 0.1 dm"},
+      {"big":"厘米 (cm)","small":"毫米 (mm)","asc":"1 cm = 10 mm","desc":"1 mm = 10⁻¹ cm = 0.1 cm"},
+      {"big":"毫米 (mm)","small":"微米 (μm)","asc":"1 mm = 10³ μm = 1000 μm","desc":"1 μm = 10⁻³ mm = 0.001 mm"},
+      {"big":"微米 (μm)","small":"纳米 (nm)","asc":"1 μm = 10³ nm = 1000 nm","desc":"1 nm = 10⁻³ μm = 0.001 μm"},
+      {"big":"千米 (km)","small":"厘米 (cm)","asc":"1 km = 10⁵ cm = 100000 cm","desc":"1 cm = 10⁻⁵ km = 0.00001 km"},
+      {"big":"米 (m)","small":"毫米 (mm)","asc":"1 m = 10³ mm = 1000 mm","desc":"1 mm = 10⁻³ m = 0.001 m"}
+    ]
+  },
+  {
+    "id": "area",
+    "category": "面积",
+    "icon": "📐",
+    "desc": "面积单位换算，相邻单位进率为10²（平方关系）。1公顷=10000 m²。",
+    "pairs": [
+      {"big":"平方千米 (km²)","small":"公顷 (hm²)","asc":"1 km² = 100 hm²","desc":"1 hm² = 0.01 km²"},
+      {"big":"公顷 (hm²)","small":"平方米 (m²)","asc":"1 hm² = 10⁴ m² = 10000 m²","desc":"1 m² = 10⁻⁴ hm² = 0.0001 hm²"},
+      {"big":"平方千米 (km²)","small":"平方米 (m²)","asc":"1 km² = 10⁶ m² = 1000000 m²","desc":"1 m² = 10⁻⁶ km² = 0.000001 km²"},
+      {"big":"平方米 (m²)","small":"平方分米 (dm²)","asc":"1 m² = 10² dm² = 100 dm²","desc":"1 dm² = 10⁻² m² = 0.01 m²"},
+      {"big":"平方分米 (dm²)","small":"平方厘米 (cm²)","asc":"1 dm² = 10² cm² = 100 cm²","desc":"1 cm² = 10⁻² dm² = 0.01 dm²"},
+      {"big":"平方厘米 (cm²)","small":"平方毫米 (mm²)","asc":"1 cm² = 10² mm² = 100 mm²","desc":"1 mm² = 10⁻² cm² = 0.01 cm²"},
+      {"big":"平方米 (m²)","small":"平方厘米 (cm²)","asc":"1 m² = 10⁴ cm² = 10000 cm²","desc":"1 cm² = 10⁻⁴ m² = 0.0001 m²"}
+    ]
+  },
+  {
+    "id": "volume",
+    "category": "体积与容积",
+    "icon": "🧊",
+    "desc": "体积与容积单位换算，相邻单位进率为10³。注意 L(升) 与 dm³ 等价，mL(毫升) 与 cm³ 等价。",
+    "pairs": [
+      {"big":"立方米 (m³)","small":"立方分米 (dm³)","asc":"1 m³ = 10³ dm³ = 1000 dm³","desc":"1 dm³ = 10⁻³ m³ = 0.001 m³"},
+      {"big":"立方分米 (dm³) / 升 (L)","small":"立方厘米 (cm³)","asc":"1 dm³ = 1 L = 10³ cm³ = 1000 cm³","desc":"1 cm³ = 10⁻³ dm³ = 0.001 dm³"},
+      {"big":"立方厘米 (cm³) / 毫升 (mL)","small":"立方毫米 (mm³)","asc":"1 cm³ = 1 mL = 10³ mm³ = 1000 mm³","desc":"1 mm³ = 10⁻³ cm³ = 0.001 cm³"},
+      {"big":"立方米 (m³)","small":"立方厘米 (cm³)","asc":"1 m³ = 10⁶ cm³ = 1000000 cm³","desc":"1 cm³ = 10⁻⁶ m³ = 0.000001 m³"},
+      {"big":"立方米 (m³)","small":"升 (L)","asc":"1 m³ = 10³ L = 1000 L","desc":"1 L = 10⁻³ m³ = 0.001 m³"},
+      {"big":"升 (L)","small":"毫升 (mL)","asc":"1 L = 10³ mL = 1000 mL","desc":"1 mL = 10⁻³ L = 0.001 L"}
+    ]
+  },
+  {
+    "id": "mass",
+    "category": "质量",
+    "icon": "⚖️",
+    "desc": "常用质量单位换算，相邻单位进率为10³。",
+    "pairs": [
+      {"big":"吨 (t)","small":"千克 (kg)","asc":"1 t = 10³ kg = 1000 kg","desc":"1 kg = 10⁻³ t = 0.001 t"},
+      {"big":"千克 (kg)","small":"克 (g)","asc":"1 kg = 10³ g = 1000 g","desc":"1 g = 10⁻³ kg = 0.001 kg"},
+      {"big":"克 (g)","small":"毫克 (mg)","asc":"1 g = 10³ mg = 1000 mg","desc":"1 mg = 10⁻³ g = 0.001 g"},
+      {"big":"吨 (t)","small":"克 (g)","asc":"1 t = 10⁶ g = 1000000 g","desc":"1 g = 10⁻⁶ t = 0.000001 t"}
+    ]
+  },
+  {
+    "id": "time",
+    "category": "时间",
+    "icon": "⏱️",
+    "desc": "时间单位换算，注意进率不是10的整数次幂。",
+    "pairs": [
+      {"big":"小时 (h)","small":"分钟 (min)","asc":"1 h = 60 min","desc":"1 min = 1/60 h ≈ 0.0167 h"},
+      {"big":"分钟 (min)","small":"秒 (s)","asc":"1 min = 60 s","desc":"1 s = 1/60 min ≈ 0.0167 min"},
+      {"big":"小时 (h)","small":"秒 (s)","asc":"1 h = 3600 s = 3.6×10³ s","desc":"1 s = 1/3600 h ≈ 2.78×10⁻⁴ h"},
+      {"big":"秒 (s)","small":"毫秒 (ms)","asc":"1 s = 10³ ms = 1000 ms","desc":"1 ms = 10⁻³ s = 0.001 s"}
+    ]
+  },
+  {
+    "id": "electricity",
+    "category": "电学单位",
+    "icon": "⚡",
+    "desc": "电流、电压、电功率等单位换算。",
+    "pairs": [
+      {"big":"千安 (kA)","small":"安培 (A)","asc":"1 kA = 10³ A","desc":"1 A = 10⁻³ kA"},
+      {"big":"安培 (A)","small":"毫安 (mA)","asc":"1 A = 10³ mA = 1000 mA","desc":"1 mA = 10⁻³ A = 0.001 A"},
+      {"big":"毫安 (mA)","small":"微安 (μA)","asc":"1 mA = 10³ μA = 1000 μA","desc":"1 μA = 10⁻³ mA = 0.001 mA"},
+      {"big":"千伏 (kV)","small":"伏特 (V)","asc":"1 kV = 10³ V = 1000 V","desc":"1 V = 10⁻³ kV = 0.001 kV"},
+      {"big":"伏特 (V)","small":"毫伏 (mV)","asc":"1 V = 10³ mV = 1000 mV","desc":"1 mV = 10⁻³ V = 0.001 V"},
+      {"big":"兆欧 (MΩ)","small":"千欧 (kΩ)","asc":"1 MΩ = 10³ kΩ","desc":"1 kΩ = 10⁻³ MΩ"},
+      {"big":"千欧 (kΩ)","small":"欧姆 (Ω)","asc":"1 kΩ = 10³ Ω","desc":"1 Ω = 10⁻³ kΩ"},
+      {"big":"千瓦 (kW)","small":"瓦特 (W)","asc":"1 kW = 10³ W = 1000 W","desc":"1 W = 10⁻³ kW = 0.001 kW"},
+      {"big":"瓦特 (W)","small":"毫瓦 (mW)","asc":"1 W = 10³ mW = 1000 mW","desc":"1 mW = 10⁻³ W = 0.001 W"}
+    ]
+  },
+  {
+    "id": "compound",
+    "category": "复合单位换算",
+    "icon": "🔄",
+    "desc": "由两个或以上基本单位组成的复合单位换算。",
+    "pairs": [
+      {"big":"米/秒 (m/s)","small":"千米/时 (km/h)","asc":"1 m/s = 3.6 km/h","desc":"1 km/h = 1/3.6 m/s ≈ 0.278 m/s"},
+      {"big":"克/厘米³ (g/cm³)","small":"千克/米³ (kg/m³)","asc":"1 g/cm³ = 10³ kg/m³ = 1000 kg/m³","desc":"1 kg/m³ = 10⁻³ g/cm³ = 0.001 g/cm³"},
+      {"big":"千瓦时 (kW·h)","small":"焦耳 (J)","asc":"1 kW·h = 3.6×10⁶ J","desc":"1 J = 1/(3.6×10⁶) kW·h ≈ 2.78×10⁻⁷ kW·h"},
+      {"big":"标准大气压 (atm)","small":"帕斯卡 (Pa)","asc":"1 atm ≈ 1.013×10⁵ Pa","desc":"1 Pa ≈ 9.87×10⁻⁶ atm"},
+      {"big":"厘米汞柱 (cmHg)","small":"帕斯卡 (Pa)","asc":"76 cmHg ≈ 1.013×10⁵ Pa","desc":"1 cmHg ≈ 1.333×10³ Pa"}
+    ]
+  },
+  {
+    "id": "frequency",
+    "category": "其他常用换算",
+    "icon": "📊",
+    "desc": "频率、能量、力等常用换算关系。",
+    "pairs": [
+      {"big":"千赫兹 (kHz)","small":"赫兹 (Hz)","asc":"1 kHz = 10³ Hz","desc":"1 Hz = 10⁻³ kHz"},
+      {"big":"兆赫兹 (MHz)","small":"千赫兹 (kHz)","asc":"1 MHz = 10³ kHz","desc":"1 kHz = 10⁻³ MHz"},
+      {"big":"兆帕 (MPa)","small":"千帕 (kPa)","asc":"1 MPa = 10³ kPa","desc":"1 kPa = 10⁻³ MPa"},
+      {"big":"千帕 (kPa)","small":"帕斯卡 (Pa)","asc":"1 kPa = 10³ Pa","desc":"1 Pa = 10⁻³ kPa"},
+      {"big":"摄氏度差值 (℃)","small":"开尔文差值 (K)","asc":"Δt × 1℃ = Δt × 1 K","desc":"Δt × 1 K = Δt × 1℃"},
+      {"big":"度 (kW·h)","small":"焦耳 (J)","asc":"1 度 = 1 kW·h = 3.6×10⁶ J","desc":"1 J = 1/(3.6×10⁶) 度"},
+      {"big":"牛顿 (N)","small":"达因 (dyn)","asc":"1 N = 10⁵ dyn","desc":"1 dyn = 10⁻⁵ N"},
+      {"big":"焦耳 (J)","small":"尔格 (erg)","asc":"1 J = 10⁷ erg","desc":"1 erg = 10⁻⁷ J"}
+    ]
+  }
+]
