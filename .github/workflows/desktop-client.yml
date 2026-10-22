@@ -1,0 +1,70 @@
+name: 构建桌面客户端
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: 构建 ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows 11 / Windows 10 客户端（x64）
+          - os: windows-latest
+            label: Windows x64
+            target: win
+          # macOS 10.15+ Intel 客户端（x64）
+          # macos-13 是 Intel(x86_64) 机器，macos-14/15 为 arm64，无法直接产出 Intel 包
+          - os: macos-13
+            label: macOS Intel x64
+            target: mac
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安装依赖
+        working-directory: client
+        run: npm install
+
+      - name: 生成图标
+        working-directory: client
+        run: node scripts/gen-icons.js
+
+      - name: 构建 ${{ matrix.label }}
+        working-directory: client
+        env:
+          # 未配置苹果签名证书时跳过签名（产物未签名，首次打开需右键 → 打开）
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --${{ matrix.target }} --publish never
+
+      - name: 上传安装包到工作流产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: gongshi-client-${{ matrix.target }}
+          path: |
+            client/dist/*.exe
+            client/dist/*.dmg
+            client/dist/*.zip
+          if-no-files-found: error
+
+      - name: 发布到 Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            client/dist/*.exe
+            client/dist/*.dmg
+            client/dist/*.zip
+          generate_release_notes: true

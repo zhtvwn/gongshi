@@ -127,6 +127,16 @@ app.get('/api/periodic-table', (req, res) => {
   res.json({ total: result.length, data: result });
 });
 
+// API: 健康检查（客户端首次配置 NAS 地址时用于连通性测试）
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'gongshi-formula',
+    version: require('./package.json').version,
+    formulas: formulas.length
+  });
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

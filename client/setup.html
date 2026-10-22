@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" />
+<title>公式手册 - 连接 NAS</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --card: rgba(255, 255, 255, 0.06);
+    --border: rgba(255, 255, 255, 0.12);
+    --text: #e8ecf8;
+    --muted: #9aa6c4;
+    --brand: #6366f1;
+    --brand-2: #8b5cf6;
+    --ok: #34d399;
+    --err: #f87171;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 15% 10%, rgba(99,102,241,0.25), transparent 60%),
+      radial-gradient(900px 500px at 85% 90%, rgba(139,92,246,0.22), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 34px 28px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    animation: rise .35s ease-out;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .logo {
+    width: 52px; height: 52px; border-radius: 14px; margin-bottom: 18px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 700; color: #fff;
+    box-shadow: 0 10px 24px rgba(99,102,241,0.35);
+  }
+  h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: .5px; }
+  .sub { color: var(--muted); font-size: 13.5px; line-height: 1.7; margin: 0 0 24px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .field { display: flex; gap: 10px; }
+  input {
+    flex: 1; min-width: 0;
+    background: rgba(0,0,0,0.28);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    outline: none;
+    transition: border-color .18s, box-shadow .18s;
+  }
+  input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(99,102,241,0.22); }
+  input::placeholder { color: #6b779a; }
+  .btn {
+    border: none; border-radius: 12px; cursor: pointer;
+    padding: 12px 18px; font-size: 14px; font-weight: 600;
+    color: #fff; background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    transition: transform .12s, opacity .18s;
+    white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); opacity: .9; }
+  .btn[disabled] { opacity: .55; cursor: not-allowed; transform: none; }
+  .btn.ghost {
+    background: transparent; border: 1px solid var(--border); color: var(--muted); font-weight: 500;
+  }
+  .btn.ghost:hover { color: var(--text); border-color: var(--brand); }
+  .msg {
+    margin-top: 16px; font-size: 13px; line-height: 1.6;
+    padding: 10px 12px; border-radius: 10px; display: none;
+    background: rgba(248,113,113,0.10); border: 1px solid rgba(248,113,113,0.35); color: #fca5a5;
+  }
+  .msg.ok {
+    background: rgba(52,211,153,0.10); border-color: rgba(52,211,153,0.35); color: #6ee7b7;
+  }
+  .msg.show { display: block; }
+  .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: currentColor; margin-right: 8px; vertical-align: middle;
+  }
+  .actions { display: flex; gap: 10px; margin-top: 22px; }
+  .actions .btn:first-child { flex: 1; }
+  .tip {
+    margin-top: 22px; padding-top: 16px; border-top: 1px dashed var(--border);
+    font-size: 12px; color: var(--muted); line-height: 1.8;
+  }
+  .tip code {
+    background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 5px;
+    font-family: ui-monospace, Menlo, Consolas, monospace; color: #c7d2fe;
+  }
+  .foot { margin-top: 14px; font-size: 11.5px; color: #5f6a8c; text-align: right; }
+  .saved {
+    margin-top: 18px; padding: 12px 14px; border-radius: 12px;
+    background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.25);
+    display: none; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .saved.show { display: flex; }
+  .saved .url { font-size: 13px; color: #a7f3d0; word-break: break-all; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Σ</div>
+    <h1>连接到 NAS</h1>
+    <p class="sub">首次使用需要填写一次 NAS 上公式手册服务的地址，之后客户端会记住并自动连接。<br />格式：<code>http://192.168.1.10:3333</code></p>
+
+    <label for="url">NAS 服务地址</label>
+    <div class="field">
+      <input id="url" type="text" placeholder="http://192.168.1.10:3333" autocomplete="off" spellcheck="false" />
+      <button id="test" class="btn ghost">测试连接</button>
+    </div>
+
+    <div class="actions">
+      <button id="save" class="btn">连接并保存</button>
+      <button id="forget" class="btn ghost" style="display:none">清除</button>
+    </div>
+
+    <div id="msg" class="msg"></div>
+
+    <div id="saved" class="saved">
+      <div>
+        <div style="font-size:12px;color:#6ee7b7">已保存的地址</div>
+        <div class="url" id="savedUrl"></div>
+      </div>
+      <button id="reconnect" class="btn ghost">重新连接</button>
+    </div>
+
+    <div class="tip">
+      在 NAS 上启动服务（Docker）：<br />
+      <code>docker compose up -d</code>，默认端口 <code>3333</code><br />
+      客户端需与 NAS 处于同一局域网，或使用 NAS 的域名 / 反代地址。
+    </div>
+    <div class="foot" id="foot"></div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const urlInput = $('url');
+  const msgBox = $('msg');
+
+  function showMsg(text, ok) {
+    msgBox.textContent = text;
+    msgBox.classList.toggle('ok', !!ok);
+    msgBox.classList.add('show');
+  }
+  function hideMsg() { msgBox.classList.remove('show'); }
+
+  function setBusy(busy) {
+    $('save').disabled = busy;
+    $('test').disabled = busy;
+    $('save').textContent = busy ? '连接中…' : '连接并保存';
+  }
+
+  async function init() {
+    const cfg = await window.gongshi.getConfig();
+    $('foot').textContent = '公式手册客户端 v' + (await window.gongshi.version());
+    if (cfg.nasUrl) {
+      urlInput.value = cfg.nasUrl;
+      $('savedUrl').textContent = cfg.nasUrl;
+      $('saved').classList.add('show');
+      $('forget').style.display = '';
+    }
+    if (cfg.lastError) showMsg(cfg.lastError, false);
+    urlInput.focus();
+  }
+
+  async function test() {
+    hideMsg();
+    const val = urlInput.value.trim();
+    if (!val) return showMsg('请先填写 NAS 地址', false);
+    setBusy(true);
+    const r = await window.gongshi.test(val).catch((e) => ({ ok: false, message: e.message }));
+    setBusy(false);
+    showMsg(r.message, r.ok);
+  }
+
+  async function connect() {
+    hideMsg();
+    const val = urlInput.value.trim();
+    if (!val) return showMsg('请先填写 NAS 地址', false);
+    setBusy(true);
+    const r = await window.gongshi.connect(val).catch((e) => ({ ok: false, message: e.message }));
+    setBusy(false);
+    if (!r.ok) showMsg(r.message, false);
+    else showMsg('已保存并正在打开…', true);
+  }
+
+  $('test').addEventListener('click', test);
+  $('save').addEventListener('click', connect);
+  $('reconnect').addEventListener('click', connect);
+  $('forget').addEventListener('click', async () => {
+    await window.gongshi.forget();
+    urlInput.value = '';
+    $('saved').classList.remove('show');
+    $('forget').style.display = 'none';
+    hideMsg();
+  });
+  urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') connect(); });
+
+  init();
+</script>
+</body>
+</html>
