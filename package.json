@@ -1,6 +1,6 @@
 {
   "name": "gonshi-formula-app",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "初中数理化公式手册 - 互动记忆 Web 应用",
   "main": "server.js",
   "files": [
