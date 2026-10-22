@@ -97,10 +97,12 @@ jobs:
 
             | 平台 | 文件 | 说明 |
             | --- | --- | --- |
-            | Windows 10 / 11（x64） | `公式手册 Setup *.exe` | 安装包（NSIS） |
-            | Windows 10 / 11（x64） | `公式手册 *.exe` | 便携版，无需安装 |
-            | macOS 10.15+（Intel x64） | `公式手册-*.dmg` | 拖拽安装 |
-            | macOS 10.15+（Intel x64） | `公式手册-*.zip` | 压缩包 |
+            | Windows 10 / 11（x64） | `Gongshi Setup ${{ github.ref_name }}.exe` | 安装包（NSIS，快捷方式名为「公式手册」） |
+            | Windows 10 / 11（x64） | `Gongshi ${{ github.ref_name }}.exe` | 便携版，无需安装 |
+            | macOS 10.15+（Intel x64） | `Gongshi-${{ github.ref_name }}.dmg` | 拖拽安装 |
+            | macOS 10.15+（Intel x64） | `Gongshi-${{ github.ref_name }}-mac.zip` | 压缩包 |
+
+            注：安装包文件名使用英文（electron-builder 会过滤非 ASCII 字符），应用内名称仍为「公式手册」。
 
             **使用方式**
             1. NAS 上运行服务：`docker compose up -d`（默认端口 3333）

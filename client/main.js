@@ -213,7 +213,7 @@ function buildMenu() {
 
   if (process.platform === 'darwin') {
     template.unshift({
-      label: app.name,
+      label: APP_TITLE,
       submenu: [
         { label: `关于 ${APP_TITLE}`, role: 'about' },
         { type: 'separator' },
