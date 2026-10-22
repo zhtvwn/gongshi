@@ -6,6 +6,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# 允许创建 Release 与上传产物
+permissions:
+  contents: write
+
 jobs:
   build:
     name: 构建 ${{ matrix.label }}
@@ -14,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Windows 11 / Windows 10 客户端（x64）
+          # Windows 10 / 11 客户端（x64）
           - os: windows-latest
             label: Windows x64
             target: win
@@ -46,7 +50,6 @@ jobs:
         env:
           # 未配置苹果签名证书时跳过签名（产物未签名，首次打开需右键 → 打开）
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --${{ matrix.target }} --publish never
 
       - name: 上传安装包到工作流产物
@@ -59,12 +62,47 @@ jobs:
             client/dist/*.zip
           if-no-files-found: error
 
-      - name: 发布到 Release
-        if: startsWith(github.ref, 'refs/tags/v')
+  release:
+    name: 发布 Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 汇总各平台安装包
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: gongshi-client-*
+          merge-multiple: true
+
+      - name: 列出待发布文件
+        run: ls -lh dist
+
+      - name: 创建 Release 并上传安装包
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            client/dist/*.exe
-            client/dist/*.dmg
-            client/dist/*.zip
-          generate_release_notes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: 公式手册 ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: false
+          body: |
+            ## 桌面客户端 ${{ github.ref_name }}
+
+            | 平台 | 文件 | 说明 |
+            | --- | --- | --- |
+            | Windows 10 / 11（x64） | `公式手册 Setup *.exe` | 安装包（NSIS） |
+            | Windows 10 / 11（x64） | `公式手册 *.exe` | 便携版，无需安装 |
+            | macOS 10.15+（Intel x64） | `公式手册-*.dmg` | 拖拽安装 |
+            | macOS 10.15+（Intel x64） | `公式手册-*.zip` | 压缩包 |
+
+            **使用方式**
+            1. NAS 上运行服务：`docker compose up -d`（默认端口 3333）
+            2. 启动客户端，首次输入 NAS 地址（如 `http://192.168.1.10:3333`），测试连接后保存
+            3. 之后每次启动自动连接；NAS 地址变更可在菜单「文件 → 修改 NAS 地址」（`Ctrl+,` / `Cmd+,`）中修改
+
+            **注意**：macOS 安装包未签名，首次打开需右键 → 「打开」。
+          files: dist/*
